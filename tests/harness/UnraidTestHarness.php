@@ -98,6 +98,7 @@ class UnraidTestHarness
             '/usr/local/emhttp/plugins',
             '/var/local/emhttp',
             '/usr/local/boot/config/plugins/custom.smb.shares',
+            '/boot/config/plugins/custom.smb.shares',
             '/mnt/user',
             '/logs',
             '/run',
@@ -113,9 +114,13 @@ class UnraidTestHarness
             }
         }
         
-        // Create empty shares.json
+        // Create empty shares.json in both locations
         file_put_contents(
             self::$harness_dir . '/usr/local/boot/config/plugins/custom.smb.shares/shares.json',
+            '[]'
+        );
+        file_put_contents(
+            self::$harness_dir . '/boot/config/plugins/custom.smb.shares/shares.json',
             '[]'
         );
         
@@ -275,6 +280,9 @@ PHP;
         $harnessDir = self::$harness_dir;
         $prepend = <<<PHP
 <?php
+// Define CONFIG_BASE for test harness
+define('CONFIG_BASE', '{$harnessDir}/boot/config');
+
 function csrf_terminate(\$reason) {
     error_log("CSRF error: \$reason");
     http_response_code(302);

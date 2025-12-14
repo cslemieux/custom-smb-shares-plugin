@@ -367,9 +367,16 @@ if (preg_match('/\.page$/', $path)) {
     error_log("Router: Page content length: " . strlen($pageContent));
     
     // Replace absolute paths with $docroot-relative paths (like Unraid expects)
-    $pageContent = str_replace(
-        "require_once '/usr/local/emhttp/plugins/custom.smb.shares/",
-        "require_once \"\$docroot/plugins/custom.smb.shares/",
+    // Handle single quotes - replace entire path including closing quote
+    $pageContent = preg_replace(
+        "#require_once '/usr/local/emhttp/plugins/custom\.smb\.shares/([^']+)'#",
+        'require_once "$docroot/plugins/custom.smb.shares/$1"',
+        $pageContent
+    );
+    // Handle double quotes
+    $pageContent = preg_replace(
+        '#require_once "/usr/local/emhttp/plugins/custom\.smb\.shares/([^"]+)"#',
+        'require_once "$docroot/plugins/custom.smb.shares/$1"',
         $pageContent
     );
     
@@ -395,6 +402,11 @@ if (preg_match('/\.page$/', $path)) {
     }
     
     error_log("Router: Executing via eval (Unraid pattern)");
+    
+    // Debug: Write processed content to file for inspection
+    $debugFile = sys_get_temp_dir() . '/router-eval-debug.php';
+    file_put_contents($debugFile, '<?php ?>' . $processedContent);
+    error_log("Router: Debug content written to: $debugFile");
     
     // Execute using eval('?' . '>'.content) - exactly like Unraid does
     // This is why __DIR__ doesn't work in page content (resolves to cwd, not file dir)

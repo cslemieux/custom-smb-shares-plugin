@@ -164,30 +164,19 @@ if (!function_exists('parse_file')) {
 /**
  * Convert Markdown to HTML
  *
- * Uses Parsedown library if available, otherwise returns content unchanged.
- * Unraid uses a custom Markdown implementation, but Parsedown is close enough
- * for testing purposes.
+ * Uses Unraid's actual MarkdownExtra implementation which properly handles
+ * HTML/PHP passthrough via hashHTMLBlocks.
  *
  * @param string $text Markdown text
  * @return string HTML output
  */
 if (!function_exists('Markdown')) {
-    function Markdown(string $text): string
-    {
-        if (class_exists('Parsedown')) {
-            static $parsedown = null;
-            if ($parsedown === null) {
-                $parsedown = new Parsedown();
-                $parsedown->setMarkupEscaped(false); // Allow HTML passthrough
-                $parsedown->setBreaksEnabled(false);
-            }
-            return $parsedown->text($text);
-        }
-
-        // Fallback: return unchanged
-        error_log("Markdown: Parsedown not available, returning content unchanged");
-        return $text;
-    }
+    // Load Unraid's Markdown implementation
+    require_once __DIR__ . '/markdown/MarkdownInterface.php';
+    require_once __DIR__ . '/markdown/Markdown.php';
+    require_once __DIR__ . '/markdown/MarkdownExtra.php';
+    require_once __DIR__ . '/markdown/MarkdownExtra.inc.php';
+    // The Markdown() function is now defined by MarkdownExtra.inc.php
 }
 
 // ============================================================================

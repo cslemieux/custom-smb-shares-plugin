@@ -5,6 +5,12 @@
 
 error_log("PAGE PARSER CALLED: " . $_SERVER['REQUEST_URI']);
 
+// Include local_prepend.php to set CONFIG_BASE and other globals
+$prependFile = $_SERVER['DOCUMENT_ROOT'] . '/webGui/include/local_prepend.php';
+if (file_exists($prependFile)) {
+    require_once $prependFile;
+}
+
 // Get the requested page path
 $requestUri = $_SERVER['REQUEST_URI'];
 $documentRoot = $_SERVER['DOCUMENT_ROOT'];
