@@ -39,7 +39,8 @@ try {
         'security' => $_POST['security'] ?? 'public',
         'user_access' => $_POST['user_access'] ?? '{}',
         'hosts_allow' => $_POST['hosts_allow'] ?? '',
-        'hosts_deny' => $_POST['hosts_deny'] ?? ''
+        'hosts_deny' => $_POST['hosts_deny'] ?? '',
+        'fruit' => $_POST['fruit'] ?? 'no'
     ]);
 
     $shareName = $updatedShare['name'] ?? '';
