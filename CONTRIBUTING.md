@@ -15,8 +15,8 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/custom-smb-shares-plugin.git
-cd custom-smb-shares-plugin
+git clone https://github.com/YOUR_USERNAME/unraid-custom-smb-shares.git
+cd unraid-custom-smb-shares
 
 # Install dependencies
 composer install
@@ -102,5 +102,5 @@ When reporting bugs, please include:
 
 ## Questions?
 
-- Open a [GitHub Discussion](https://github.com/YOUR_USERNAME/custom-smb-shares-plugin/discussions)
+- Open a [GitHub Discussion](https://github.com/YOUR_USERNAME/unraid-custom-smb-shares/discussions)
 - Ask on the [Unraid Forums](https://forums.unraid.net/)

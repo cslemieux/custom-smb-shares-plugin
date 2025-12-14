@@ -5,7 +5,7 @@
 <!ENTITY author    "cslemieux">
 <!ENTITY version   "2025.12.14">
 <!ENTITY launch    "Settings/CustomSMBShares">
-<!ENTITY gitURL    "https://raw.githubusercontent.com/cslemieux/custom-smb-shares-plugin/main">
+<!ENTITY gitURL    "https://raw.githubusercontent.com/cslemieux/unraid-custom-smb-shares/main">
 <!ENTITY pluginURL "&gitURL;/custom.smb.shares.plg">
 <!ENTITY md5       "54d33caba31bf75870b7e0ea6740d6c8">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
