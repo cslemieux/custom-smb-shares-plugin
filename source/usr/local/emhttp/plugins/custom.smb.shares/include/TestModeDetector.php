@@ -118,6 +118,29 @@ class TestModeDetector
     }
 
     /**
+     * Strip harness root prefix from a path in test mode
+     *
+     * Used to convert a resolved realpath back to a storage-friendly path.
+     * In production, returns the path unchanged.
+     *
+     * @param string $path The path to strip
+     * @return string The path with harness root removed (if applicable)
+     */
+    public static function stripHarnessRoot(string $path): string
+    {
+        if (!self::isTestMode()) {
+            return $path;
+        }
+
+        $harnessRoot = self::getHarnessRoot();
+        if ($harnessRoot && strpos($path, $harnessRoot) === 0) {
+            return substr($path, strlen($harnessRoot));
+        }
+
+        return $path;
+    }
+
+    /**
      * Get mock script paths for Samba commands in test mode
      *
      * @return array{testparm: string, smbcontrol: string, configFile: string}|null

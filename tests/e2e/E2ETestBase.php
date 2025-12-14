@@ -210,6 +210,88 @@ abstract class E2ETestBase extends TestCase
     }
     
     /**
+     * Verify share exists in backend (shares.json)
+     * @param string $shareName Name of share to verify
+     * @return bool True if share exists in backend
+     */
+    protected function verifyShareInBackend(string $shareName): bool
+    {
+        $configFile = self::$harness['harness_dir'] . '/usr/local/boot/config/plugins/custom.smb.shares/shares.json';
+        if (!file_exists($configFile)) {
+            return false;
+        }
+        
+        $content = file_get_contents($configFile);
+        if ($content === false) {
+            return false;
+        }
+        
+        $shares = json_decode($content, true);
+        if (!is_array($shares)) {
+            return false;
+        }
+        
+        foreach ($shares as $share) {
+            if (isset($share['name']) && $share['name'] === $shareName) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get share data from backend
+     * @param string $shareName Name of share to get
+     * @return array|null Share data or null if not found
+     */
+    protected function getShareFromBackend(string $shareName): ?array
+    {
+        $configFile = self::$harness['harness_dir'] . '/usr/local/boot/config/plugins/custom.smb.shares/shares.json';
+        if (!file_exists($configFile)) {
+            return null;
+        }
+        
+        $content = file_get_contents($configFile);
+        if ($content === false) {
+            return null;
+        }
+        
+        $shares = json_decode($content, true);
+        if (!is_array($shares)) {
+            return null;
+        }
+        
+        foreach ($shares as $share) {
+            if (isset($share['name']) && $share['name'] === $shareName) {
+                return $share;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Get all shares from backend
+     * @return array Array of shares
+     */
+    protected function getAllSharesFromBackend(): array
+    {
+        $configFile = self::$harness['harness_dir'] . '/usr/local/boot/config/plugins/custom.smb.shares/shares.json';
+        if (!file_exists($configFile)) {
+            return [];
+        }
+        
+        $content = file_get_contents($configFile);
+        if ($content === false) {
+            return [];
+        }
+        
+        $shares = json_decode($content, true);
+        return is_array($shares) ? $shares : [];
+    }
+    
+    /**
      * Cleanup after each test
      */
     protected function tearDown(): void

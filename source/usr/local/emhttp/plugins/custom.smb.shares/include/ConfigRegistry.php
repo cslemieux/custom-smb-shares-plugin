@@ -26,6 +26,12 @@ declare(strict_types=1);
  */
 class ConfigRegistry
 {
+    // Validation patterns
+    public const SHARE_NAME_PATTERN = '/^[a-zA-Z0-9_-]+$/';
+    public const OCTAL_MASK_PATTERN = '/^[0-7]{4}$/';
+    public const PATH_PREFIX = '/mnt/';
+    public const BACKUP_FILENAME_PATTERN = '/^shares_[\d_-]+\.json$/';
+
     /**
      * Override config base path (used in tests)
      */

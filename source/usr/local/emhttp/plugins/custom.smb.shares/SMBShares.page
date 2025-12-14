@@ -30,11 +30,11 @@ $sambaRunning = $sambaStatus['running'];
 <style>
 .custom-shares-table { table-layout: fixed; }
 .custom-shares-table th:nth-child(1) { width: 70px; }   /* Enable */
-.custom-shares-table th:nth-child(2) { width: 140px; }  /* Share Name */
-.custom-shares-table th:nth-child(5) { width: 90px; }   /* Features */
-.custom-shares-table th:nth-child(6) { width: 100px; }  /* Security */
-.custom-shares-table th:nth-child(7) { width: 120px; text-align: right; }  /* Actions */
-.custom-shares-table td:last-child { text-align: right; }
+.custom-shares-table th:nth-child(2) { width: 130px; }  /* Share Name */
+.custom-shares-table th:nth-child(5) { width: 80px; }   /* Features */
+.custom-shares-table th:nth-child(6) { width: 80px; }   /* Security */
+.custom-shares-table th:nth-child(7) { width: 180px; text-align: right; }  /* Actions */
+.custom-shares-table td:last-child { text-align: right; white-space: nowrap; }
 .disabled-banner { background: #f0ad4e; color: #000; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; }
 .disabled-banner a { color: #000; text-decoration: underline; }
 .share-disabled { opacity: 0.5; }

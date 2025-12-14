@@ -28,6 +28,8 @@ window.toggleSecurityMode = function (select) {
 
 /**
  * Populate user access list with system users
+ * @param {jQuery} $form - The form element containing the user access list
+ * @param {string} mode - Security mode ('secure' or 'private')
  */
 function populateUserAccess($form, mode)
 {
@@ -76,6 +78,11 @@ function populateUserAccess($form, mode)
         });
 }
 
+/**
+ * Get default access level based on security mode
+ * @param {string} mode - Security mode ('secure' or 'private')
+ * @returns {string} Default access level ('read-only' or 'no-access')
+ */
 function getDefaultAccess(mode)
 {
     return mode === 'secure' ? 'read-only' : 'no-access';

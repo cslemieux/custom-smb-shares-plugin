@@ -35,6 +35,17 @@ function logInfo(string $message): void
     syslog(LOG_INFO, "custom.smb.shares: $message");
 }
 
+/**
+ * Sanitize a string for safe inclusion in Samba config.
+ * Removes newlines and carriage returns to prevent config injection.
+ * @param string $value The value to sanitize
+ * @return string Sanitized value with newlines stripped
+ */
+function sanitizeForSambaConfig(string $value): string
+{
+    return str_replace(["\r", "\n"], '', $value);
+}
+
 // CSRF validation is handled globally by Unraid in local_prepend.php
 // All POST requests are automatically validated before reaching plugin code
 // No need to validate csrf_token in plugin code
@@ -50,14 +61,14 @@ function getHarnessRoot(): string
 }
 
 /**
- * @param array<string, mixed> $data
- * @return array<int, string>
+ * @param array<string, mixed> $data Share data (modified in place - path is replaced with realpath)
+ * @return array<int, string> Array of validation error messages
  */
-function validateShare(array $data): array
+function validateShare(array &$data): array
 {
     $errors = [];
 
-    if (empty($data['name']) || !preg_match('/^[a-zA-Z0-9_-]+$/', $data['name'])) {
+    if (empty($data['name']) || !preg_match(ConfigRegistry::SHARE_NAME_PATTERN, $data['name'])) {
         $errors[] = 'Invalid share name. Use only letters, numbers, hyphens, and underscores.';
     }
 
@@ -69,7 +80,9 @@ function validateShare(array $data): array
         // Resolve path (prepends harness root in test mode if needed)
         $checkPath = TestModeDetector::resolvePath($data['path']);
 
-        // Canonicalize path to prevent symlink attacks
+        // Canonicalize path to prevent symlink attacks (TOCTOU fix)
+        // We store the resolved path to ensure the path used at runtime
+        // is the same path that was validated
         $realPath = realpath($checkPath);
         if ($realPath === false) {
             $errors[] = 'Path does not exist: ' . $data['path'];
@@ -80,6 +93,10 @@ function validateShare(array $data): array
                 $errors[] = 'Path is not a directory: ' . $data['path'];
             } elseif (!is_writable($realPath)) {
                 $errors[] = 'Path is not writable: ' . $data['path'];
+            } else {
+                // Store the resolved path to prevent TOCTOU attacks
+                // In test mode, strip the harness root prefix for storage
+                $data['path'] = TestModeDetector::stripHarnessRoot($realPath);
             }
         }
     }
@@ -87,7 +104,7 @@ function validateShare(array $data): array
     if (
         isset($data['create_mask']) &&
         !empty($data['create_mask']) &&
-        !preg_match('/^[0-7]{4}$/', $data['create_mask'])
+        !preg_match(ConfigRegistry::OCTAL_MASK_PATTERN, $data['create_mask'])
     ) {
         $errors[] = 'Invalid create mask. Must be 4 octal digits (0-7).';
     }
@@ -95,7 +112,7 @@ function validateShare(array $data): array
     if (
         isset($data['directory_mask']) &&
         !empty($data['directory_mask']) &&
-        !preg_match('/^[0-7]{4}$/', $data['directory_mask'])
+        !preg_match(ConfigRegistry::OCTAL_MASK_PATTERN, $data['directory_mask'])
     ) {
         $errors[] = 'Invalid directory mask. Must be 4 octal digits (0-7).';
     }
@@ -360,130 +377,224 @@ function generateSambaConfig(array $shares): string
         // Handle export field - skip if not exported
         $export = $share['export'] ?? 'e';
         if ($export === '-') {
-            continue; // Don't export this share
+            continue;
         }
 
-        $config .= "[{$share['name']}]\n";
-        $config .= "    path = {$share['path']}\n";
-
-        if (!empty($share['comment'])) {
-            $config .= "    comment = {$share['comment']}\n";
-        }
-
-        // Determine browseable from export setting
-        // 'eh' and 'eth' are hidden variants
-        $isHidden = in_array($export, ['eh', 'eth'], true);
-        $config .= "    browseable = " . ($isHidden ? 'no' : 'yes') . "\n";
-
-        // Case-sensitive names (auto/yes/forced -> auto/yes/lower)
-        $caseSensitive = $share['case_sensitive'] ?? 'auto';
-        if ($caseSensitive === 'forced') {
-            $config .= "    case sensitive = yes\n";
-            $config .= "    default case = lower\n";
-            $config .= "    preserve case = no\n";
-            $config .= "    short preserve case = no\n";
-        } elseif ($caseSensitive === 'yes') {
-            $config .= "    case sensitive = yes\n";
-        }
-
-        // Time Machine support (et, eth)
-        $isTimeMachine = in_array($export, ['et', 'eth'], true);
-        if ($isTimeMachine) {
-            $config .= "    vfs objects = catia fruit streams_xattr\n";
-            $config .= "    fruit:time machine = yes\n";
-            if (!empty($share['volsizelimit'])) {
-                $config .= "    fruit:time machine max size = {$share['volsizelimit']}M\n";
-            }
-        } elseif (($share['fruit'] ?? 'no') === 'yes') {
-            // Enhanced macOS support (fruit VFS) for non-Time Machine shares
-            $config .= "    vfs objects = catia fruit streams_xattr\n";
-        }
-
-        // Security mode handling
-        $security = $share['security'] ?? 'public';
-        $userAccess = [];
-        if (!empty($share['user_access'])) {
-            $userAccess = is_string($share['user_access'])
-                ? json_decode($share['user_access'], true) ?? []
-                : $share['user_access'];
-        }
-
-        if ($security === 'public') {
-            // Public: guest ok, everyone can read/write
-            $config .= "    guest ok = yes\n";
-            $config .= "    read only = no\n";
-        } elseif ($security === 'secure') {
-            // Secure: guest read, users configurable
-            $config .= "    guest ok = yes\n";
-            $config .= "    read only = yes\n";
-
-            // Build write list from user_access
-            $writeUsers = [];
-            foreach ($userAccess as $user => $access) {
-                if ($access === 'read-write') {
-                    $writeUsers[] = $user;
-                }
-            }
-            if (!empty($writeUsers)) {
-                $config .= "    write list = " . implode(' ', $writeUsers) . "\n";
-            }
-        } elseif ($security === 'private') {
-            // Private: no guest, users configurable
-            $config .= "    guest ok = no\n";
-
-            // Build valid users, read list, write list
-            $validUsers = [];
-            $readUsers = [];
-            $writeUsers = [];
-
-            foreach ($userAccess as $user => $access) {
-                if ($access === 'read-only') {
-                    $validUsers[] = $user;
-                    $readUsers[] = $user;
-                } elseif ($access === 'read-write') {
-                    $validUsers[] = $user;
-                    $writeUsers[] = $user;
-                }
-            }
-
-            if (!empty($validUsers)) {
-                $config .= "    valid users = " . implode(' ', $validUsers) . "\n";
-            }
-            if (!empty($writeUsers)) {
-                $config .= "    write list = " . implode(' ', $writeUsers) . "\n";
-                $config .= "    read only = yes\n";
-            } else {
-                $config .= "    read only = yes\n";
-            }
-        }
-
-        // Apply permission settings (use defaults if not specified)
-        $forceUser = $share['force_user'] ?? 'nobody';
-        $forceGroup = $share['force_group'] ?? 'users';
-        $createMask = $share['create_mask'] ?? '0664';
-        $directoryMask = $share['directory_mask'] ?? '0775';
-        $hideDotFiles = $share['hide_dot_files'] ?? 'yes';
-
-        if (!empty($forceUser)) {
-            $config .= "    force user = {$forceUser}\n";
-        }
-        if (!empty($forceGroup)) {
-            $config .= "    force group = {$forceGroup}\n";
-        }
-        $config .= "    create mask = {$createMask}\n";
-        $config .= "    directory mask = {$directoryMask}\n";
-        $config .= "    hide dot files = {$hideDotFiles}\n";
-
-        // Host-based access control
-        if (!empty($share['hosts_allow'])) {
-            $config .= "    hosts allow = {$share['hosts_allow']}\n";
-        }
-        if (!empty($share['hosts_deny'])) {
-            $config .= "    hosts deny = {$share['hosts_deny']}\n";
-        }
-
-        $config .= "\n";
+        $config .= buildShareConfig($share, $export);
     }
+    return $config;
+}
+
+/**
+ * Build config for a single share
+ * @param array<string, mixed> $share Share data
+ * @param string $export Export setting
+ * @return string Samba config block for this share
+ */
+function buildShareConfig(array $share, string $export): string
+{
+    // Sanitize all user-provided string fields to prevent config injection
+    $name = sanitizeForSambaConfig($share['name'] ?? '');
+    $path = sanitizeForSambaConfig($share['path'] ?? '');
+    $comment = sanitizeForSambaConfig($share['comment'] ?? '');
+
+    $config = "[{$name}]\n";
+    $config .= "    path = {$path}\n";
+
+    if (!empty($comment)) {
+        $config .= "    comment = {$comment}\n";
+    }
+
+    // Determine browseable from export setting ('eh' and 'eth' are hidden)
+    $isHidden = in_array($export, ['eh', 'eth'], true);
+    $config .= "    browseable = " . ($isHidden ? 'no' : 'yes') . "\n";
+
+    $config .= buildCaseSensitiveConfig($share);
+    $config .= buildVfsConfig($share, $export);
+    $config .= buildSecurityConfig($share);
+    $config .= buildPermissionConfig($share);
+    $config .= buildHostAccessConfig($share);
+
+    $config .= "\n";
+    return $config;
+}
+
+/**
+ * Build case sensitivity config
+ * @param array<string, mixed> $share Share data
+ * @return string Config lines for case sensitivity
+ */
+function buildCaseSensitiveConfig(array $share): string
+{
+    $caseSensitive = $share['case_sensitive'] ?? 'auto';
+    $config = '';
+
+    if ($caseSensitive === 'forced') {
+        $config .= "    case sensitive = yes\n";
+        $config .= "    default case = lower\n";
+        $config .= "    preserve case = no\n";
+        $config .= "    short preserve case = no\n";
+    } elseif ($caseSensitive === 'yes') {
+        $config .= "    case sensitive = yes\n";
+    }
+
+    return $config;
+}
+
+/**
+ * Build VFS config (Time Machine, Fruit)
+ * @param array<string, mixed> $share Share data
+ * @param string $export Export setting
+ * @return string Config lines for VFS
+ */
+function buildVfsConfig(array $share, string $export): string
+{
+    $config = '';
+    $isTimeMachine = in_array($export, ['et', 'eth'], true);
+
+    if ($isTimeMachine) {
+        $config .= "    vfs objects = catia fruit streams_xattr\n";
+        $config .= "    fruit:time machine = yes\n";
+        if (!empty($share['volsizelimit'])) {
+            $volSizeLimit = sanitizeForSambaConfig((string)$share['volsizelimit']);
+            $config .= "    fruit:time machine max size = {$volSizeLimit}M\n";
+        }
+    } elseif (($share['fruit'] ?? 'no') === 'yes') {
+        $config .= "    vfs objects = catia fruit streams_xattr\n";
+    }
+
+    return $config;
+}
+
+/**
+ * Build security config (guest access, user lists)
+ * @param array<string, mixed> $share Share data
+ * @return string Config lines for security
+ */
+function buildSecurityConfig(array $share): string
+{
+    $security = $share['security'] ?? 'public';
+    $userAccess = [];
+    if (!empty($share['user_access'])) {
+        $userAccess = is_string($share['user_access'])
+            ? json_decode($share['user_access'], true) ?? []
+            : $share['user_access'];
+    }
+
+    $config = '';
+
+    if ($security === 'public') {
+        $config .= "    guest ok = yes\n";
+        $config .= "    read only = no\n";
+    } elseif ($security === 'secure') {
+        $config .= "    guest ok = yes\n";
+        $config .= "    read only = yes\n";
+        $config .= buildWriteListConfig($userAccess);
+    } elseif ($security === 'private') {
+        $config .= "    guest ok = no\n";
+        $config .= buildPrivateAccessConfig($userAccess);
+    }
+
+    return $config;
+}
+
+/**
+ * Build write list config for secure mode
+ * @param array<string, string> $userAccess User access map
+ * @return string Config lines for write list
+ */
+function buildWriteListConfig(array $userAccess): string
+{
+    $writeUsers = [];
+    foreach ($userAccess as $user => $access) {
+        if ($access === 'read-write') {
+            $writeUsers[] = sanitizeForSambaConfig((string)$user);
+        }
+    }
+
+    if (!empty($writeUsers)) {
+        return "    write list = " . implode(' ', $writeUsers) . "\n";
+    }
+    return '';
+}
+
+/**
+ * Build private access config (valid users, write list)
+ * @param array<string, string> $userAccess User access map
+ * @return string Config lines for private access
+ */
+function buildPrivateAccessConfig(array $userAccess): string
+{
+    $validUsers = [];
+    $writeUsers = [];
+
+    foreach ($userAccess as $user => $access) {
+        $sanitizedUser = sanitizeForSambaConfig((string)$user);
+        if ($access === 'read-only') {
+            $validUsers[] = $sanitizedUser;
+        } elseif ($access === 'read-write') {
+            $validUsers[] = $sanitizedUser;
+            $writeUsers[] = $sanitizedUser;
+        }
+    }
+
+    $config = '';
+    if (!empty($validUsers)) {
+        $config .= "    valid users = " . implode(' ', $validUsers) . "\n";
+    }
+    if (!empty($writeUsers)) {
+        $config .= "    write list = " . implode(' ', $writeUsers) . "\n";
+    }
+    $config .= "    read only = yes\n";
+
+    return $config;
+}
+
+/**
+ * Build permission config (masks, force user/group)
+ * @param array<string, mixed> $share Share data
+ * @return string Config lines for permissions
+ */
+function buildPermissionConfig(array $share): string
+{
+    $forceUser = sanitizeForSambaConfig($share['force_user'] ?? 'nobody');
+    $forceGroup = sanitizeForSambaConfig($share['force_group'] ?? 'users');
+    $createMask = sanitizeForSambaConfig($share['create_mask'] ?? '0664');
+    $directoryMask = sanitizeForSambaConfig($share['directory_mask'] ?? '0775');
+    $hideDotFiles = sanitizeForSambaConfig($share['hide_dot_files'] ?? 'yes');
+
+    $config = '';
+    if (!empty($forceUser)) {
+        $config .= "    force user = {$forceUser}\n";
+    }
+    if (!empty($forceGroup)) {
+        $config .= "    force group = {$forceGroup}\n";
+    }
+    $config .= "    create mask = {$createMask}\n";
+    $config .= "    directory mask = {$directoryMask}\n";
+    $config .= "    hide dot files = {$hideDotFiles}\n";
+
+    return $config;
+}
+
+/**
+ * Build host access config (hosts allow/deny)
+ * @param array<string, mixed> $share Share data
+ * @return string Config lines for host access
+ */
+function buildHostAccessConfig(array $share): string
+{
+    $hostsAllow = sanitizeForSambaConfig($share['hosts_allow'] ?? '');
+    $hostsDeny = sanitizeForSambaConfig($share['hosts_deny'] ?? '');
+
+    $config = '';
+    if (!empty($hostsAllow)) {
+        $config .= "    hosts allow = {$hostsAllow}\n";
+    }
+    if (!empty($hostsDeny)) {
+        $config .= "    hosts deny = {$hostsDeny}\n";
+    }
+
     return $config;
 }
 

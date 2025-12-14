@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2025.12.14b">
+<!ENTITY version   "2025.12.14c">
 <!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "de09ecefa5d70289a10acf4cd2abd30a">
+<!ENTITY md5       "bacaaedd44de94cc6cba0166067f9248">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -23,6 +23,15 @@
 
 <CHANGES>
 ##&name;
+
+###2025.12.14c
+- Security: Prevent Samba config injection via newlines in share fields
+- Security: Fix TOCTOU symlink race condition in path validation
+- Refactor: Extract helper functions from generateSambaConfig()
+- Quality: Add concurrent modification tests (6 new tests)
+- Quality: Add JSDoc documentation to JavaScript
+- Quality: Extract magic strings to ConfigRegistry constants
+- Tests: 287 tests, 645 assertions - all passing
 
 ###2025.12.14a
 - Initial release v1.0.0

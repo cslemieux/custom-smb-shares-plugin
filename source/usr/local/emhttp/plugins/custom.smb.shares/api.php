@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/include/lib.php';
+
 header('Content-Type: application/json');
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
@@ -100,7 +102,6 @@ if ($action === 'searchUsers') {
 }
 
 if ($action === 'getShare') {
-    require_once __DIR__ . '/include/lib.php';
     $index = intval($_GET['index'] ?? -1);
     $shares = loadShares();
     if (isset($shares[$index])) {
@@ -113,14 +114,12 @@ if ($action === 'getShare') {
 }
 
 if ($action === 'exportConfig') {
-    require_once __DIR__ . '/include/lib.php';
     $shares = loadShares();
     echo json_encode(['success' => true, 'config' => $shares]);
     exit;
 }
 
 if ($action === 'importConfig') {
-    require_once __DIR__ . '/include/lib.php';
     $input = file_get_contents('php://input');
     if ($input === false) {
         http_response_code(400);
@@ -136,7 +135,7 @@ if ($action === 'importConfig') {
     }
 
     // Validate each share
-    foreach ($shares as $share) {
+    foreach ($shares as &$share) {
         $errors = validateShare($share);
         if (!empty($errors)) {
             http_response_code(400);
@@ -144,6 +143,7 @@ if ($action === 'importConfig') {
             exit;
         }
     }
+    unset($share); // Break reference
 
     // Backup existing config before overwriting
     backupShares();
@@ -154,7 +154,6 @@ if ($action === 'importConfig') {
 }
 
 if ($action === 'reloadSamba') {
-    require_once __DIR__ . '/include/lib.php';
     $result = reloadSamba();
     if ($result['success']) {
         echo json_encode(['success' => true, 'message' => 'Samba reloaded successfully']);
@@ -166,7 +165,6 @@ if ($action === 'reloadSamba') {
 }
 
 if ($action === 'toggleShare') {
-    require_once __DIR__ . '/include/lib.php';
     $name = $_POST['name'] ?? '';
     $enabled = isset($_POST['enabled']) ? $_POST['enabled'] === 'true' : null;
 
@@ -211,7 +209,6 @@ if ($action === 'toggleShare') {
 }
 
 if ($action === 'createBackup') {
-    require_once __DIR__ . '/include/lib.php';
     $result = backupShares();
     if ($result) {
         echo json_encode(['success' => true, 'message' => 'Backup created', 'filename' => basename($result)]);
@@ -223,16 +220,14 @@ if ($action === 'createBackup') {
 }
 
 if ($action === 'listBackups') {
-    require_once __DIR__ . '/include/lib.php';
     $backups = listBackups();
     echo json_encode(['success' => true, 'backups' => $backups]);
     exit;
 }
 
 if ($action === 'viewBackup') {
-    require_once __DIR__ . '/include/lib.php';
     $filename = $_GET['filename'] ?? $_POST['filename'] ?? '';
-    if (empty($filename) || !preg_match('/^shares_[\d_-]+\.json$/', $filename)) {
+    if (empty($filename) || !preg_match(ConfigRegistry::BACKUP_FILENAME_PATTERN, $filename)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
         exit;
@@ -248,9 +243,8 @@ if ($action === 'viewBackup') {
 }
 
 if ($action === 'restoreBackup') {
-    require_once __DIR__ . '/include/lib.php';
     $filename = $_GET['filename'] ?? $_POST['filename'] ?? '';
-    if (empty($filename) || !preg_match('/^shares_[\d_-]+\.json$/', $filename)) {
+    if (empty($filename) || !preg_match(ConfigRegistry::BACKUP_FILENAME_PATTERN, $filename)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
         exit;
@@ -268,9 +262,8 @@ if ($action === 'restoreBackup') {
 }
 
 if ($action === 'deleteBackup') {
-    require_once __DIR__ . '/include/lib.php';
     $filename = $_GET['filename'] ?? $_POST['filename'] ?? '';
-    if (empty($filename) || !preg_match('/^shares_[\d_-]+\.json$/', $filename)) {
+    if (empty($filename) || !preg_match(ConfigRegistry::BACKUP_FILENAME_PATTERN, $filename)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
         exit;
