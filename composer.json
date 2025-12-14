@@ -39,8 +39,8 @@
             "phpunit --colors=always --testdox tests/security/SymlinkPathTraversalTest.php"
         ],
         "test:coverage": "phpunit --coverage-html coverage/ --coverage-text",
-        "lint": "phpcs --standard=PSR12 --warning-severity=0 source/",
-        "lint:fix": "phpcbf --standard=PSR12 source/",
+        "lint": "phpcs --warning-severity=0",
+        "lint:fix": "phpcbf",
         "analyze": "phpstan analyse source/ --level=8 --no-progress",
         "check:js": "node --check source/usr/local/emhttp/plugins/custom.smb.shares/js/*.js 2>&1 || true",
         "check": [

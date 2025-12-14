@@ -7,10 +7,10 @@ function showNotification(message, type)
 {
     // Calculate top position based on existing notifications
     var topOffset = 20;
-    $('.notification').each(function() {
+    $('.notification').each(function () {
         topOffset += $(this).outerHeight() + 10;
     });
-    
+
     var notification = $('<div class="notification notification-' + type + '"></div>');
     notification.text(message);
     notification.css('top', topOffset + 'px');
@@ -36,7 +36,7 @@ function showNotification(message, type)
 function repositionNotifications()
 {
     var topOffset = 20;
-    $('.notification').each(function() {
+    $('.notification').each(function () {
         $(this).css('top', topOffset + 'px');
         topOffset += $(this).outerHeight() + 10;
     });

@@ -165,19 +165,19 @@ function backupShares(?string $configBase = null)
 {
     $base = $configBase ?? ConfigRegistry::getConfigBase();
     $file = $base . '/plugins/custom.smb.shares/shares.json';
-    
+
     if (!file_exists($file)) {
         return false;
     }
-    
+
     $backupDir = $base . '/plugins/custom.smb.shares/backups';
     if (!is_dir($backupDir)) {
         mkdir($backupDir, 0755, true);
     }
-    
+
     $timestamp = date('Y-m-d_H-i-s');
     $backupFile = $backupDir . '/shares_' . $timestamp . '.json';
-    
+
     if (copy($file, $backupFile)) {
         // Keep only configured number of backups
         pruneBackups($backupDir, getBackupCount($configBase));
@@ -197,12 +197,12 @@ function pruneBackups(string $backupDir, int $keep): void
     if ($files === false || count($files) <= $keep) {
         return;
     }
-    
+
     // Sort by modification time, oldest first
     usort($files, function ($a, $b) {
         return filemtime($a) - filemtime($b);
     });
-    
+
     // Remove oldest files
     $toRemove = count($files) - $keep;
     for ($i = 0; $i < $toRemove; $i++) {
@@ -219,33 +219,35 @@ function listBackups(?string $configBase = null): array
 {
     $base = $configBase ?? ConfigRegistry::getConfigBase();
     $backupDir = $base . '/plugins/custom.smb.shares/backups';
-    
+
     if (!is_dir($backupDir)) {
         return [];
     }
-    
+
     $files = glob($backupDir . '/shares_*.json');
     if ($files === false) {
         return [];
     }
-    
+
     $backups = [];
     foreach ($files as $file) {
         $content = file_get_contents($file);
         $shares = $content ? json_decode($content, true) : [];
+        $mtime = filemtime($file);
+        $size = filesize($file);
         $backups[] = [
             'filename' => basename($file),
-            'date' => date('Y-m-d H:i:s', filemtime($file)),
-            'size' => filesize($file),
+            'date' => date('Y-m-d H:i:s', $mtime !== false ? $mtime : 0),
+            'size' => $size !== false ? $size : 0,
             'shares' => is_array($shares) ? count($shares) : 0
         ];
     }
-    
+
     // Sort by date, newest first
     usort($backups, function ($a, $b) {
         return strcmp($b['date'], $a['date']);
     });
-    
+
     return $backups;
 }
 
@@ -259,16 +261,16 @@ function viewBackup(string $filename, ?string $configBase = null)
 {
     $base = $configBase ?? ConfigRegistry::getConfigBase();
     $file = $base . '/plugins/custom.smb.shares/backups/' . $filename;
-    
+
     if (!file_exists($file)) {
         return false;
     }
-    
+
     $content = file_get_contents($file);
     if ($content === false) {
         return false;
     }
-    
+
     return json_decode($content, true);
 }
 
@@ -283,11 +285,11 @@ function restoreBackup(string $filename, ?string $configBase = null): bool
     $base = $configBase ?? ConfigRegistry::getConfigBase();
     $backupFile = $base . '/plugins/custom.smb.shares/backups/' . $filename;
     $sharesFile = $base . '/plugins/custom.smb.shares/shares.json';
-    
+
     if (!file_exists($backupFile)) {
         return false;
     }
-    
+
     return copy($backupFile, $sharesFile);
 }
 
@@ -301,11 +303,11 @@ function deleteBackup(string $filename, ?string $configBase = null): bool
 {
     $base = $configBase ?? ConfigRegistry::getConfigBase();
     $file = $base . '/plugins/custom.smb.shares/backups/' . $filename;
-    
+
     if (!file_exists($file)) {
         return false;
     }
-    
+
     return unlink($file);
 }
 
@@ -318,11 +320,11 @@ function getBackupCount(?string $configBase = null): int
 {
     $base = $configBase ?? ConfigRegistry::getConfigBase();
     $settingsFile = $base . '/plugins/custom.smb.shares/settings.cfg';
-    
+
     if (!file_exists($settingsFile)) {
         return 10; // default
     }
-    
+
     $settings = parse_ini_file($settingsFile);
     return (int)($settings['BACKUP_COUNT'] ?? 10);
 }

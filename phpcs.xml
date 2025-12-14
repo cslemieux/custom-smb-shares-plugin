@@ -3,7 +3,10 @@
     <description>PSR-12 coding standard for Custom SMB Shares plugin</description>
     
     <!-- Use PSR-12 standard -->
-    <rule ref="PSR12"/>
+    <rule ref="PSR12">
+        <!-- Exclude namespace requirement - Unraid plugins don't use namespaces -->
+        <exclude name="PSR1.Classes.ClassDeclaration.MissingNamespace"/>
+    </rule>
     
     <!-- Paths to check -->
     <file>source/</file>

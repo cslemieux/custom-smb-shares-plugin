@@ -147,7 +147,7 @@ if ($action === 'importConfig') {
 
     // Backup existing config before overwriting
     backupShares();
-    
+
     saveShares($shares);
     echo json_encode(['success' => true, 'message' => 'Configuration imported successfully']);
     exit;
@@ -156,11 +156,11 @@ if ($action === 'importConfig') {
 if ($action === 'reloadSamba') {
     require_once __DIR__ . '/include/lib.php';
     $result = reloadSamba();
-    if ($result) {
+    if ($result['success']) {
         echo json_encode(['success' => true, 'message' => 'Samba reloaded successfully']);
     } else {
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Failed to reload Samba']);
+        echo json_encode(['success' => false, 'error' => $result['error']]);
     }
     exit;
 }
@@ -169,39 +169,39 @@ if ($action === 'toggleShare') {
     require_once __DIR__ . '/include/lib.php';
     $name = $_POST['name'] ?? '';
     $enabled = isset($_POST['enabled']) ? $_POST['enabled'] === 'true' : null;
-    
+
     if (empty($name)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Share name required']);
         exit;
     }
-    
+
     $shares = loadShares();
     $index = findShareIndex($shares, $name);
-    
+
     if ($index === -1) {
         http_response_code(404);
         echo json_encode(['success' => false, 'error' => 'Share not found']);
         exit;
     }
-    
+
     // Toggle or set explicit value
     if ($enabled === null) {
         $shares[$index]['enabled'] = !($shares[$index]['enabled'] ?? true);
     } else {
         $shares[$index]['enabled'] = $enabled;
     }
-    
+
     saveShares($shares);
-    
+
     // Regenerate Samba config file
     $config = generateSambaConfig($shares);
     $configPath = ConfigRegistry::getConfigBase() . '/plugins/custom.smb.shares/smb-custom.conf';
     file_put_contents($configPath, $config);
-    
+
     // Reload Samba
     $sambaResult = reloadSamba();
-    
+
     echo json_encode([
         'success' => true,
         'enabled' => $shares[$index]['enabled'],
