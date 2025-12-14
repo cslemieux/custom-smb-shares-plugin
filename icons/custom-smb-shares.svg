@@ -1,29 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Background circle -->
-  <circle cx="256" cy="256" r="240" fill="#4a90d9"/>
+  <!-- Background circle - Unraid orange to differentiate from built-in -->
+  <circle cx="256" cy="256" r="240" fill="#f15a2b"/>
   
-  <!-- Folder back/tab -->
-  <path d="M90 170 L90 390 L422 390 L422 170 L270 170 L235 125 L90 125 Z" 
-        fill="#e09000"/>
+  <!-- Share icon - three connected nodes -->
+  <g fill="#ffffff">
+    <!-- Top-right node (larger) -->
+    <circle cx="340" cy="150" r="50"/>
+    <!-- Middle-left node (larger) -->
+    <circle cx="160" cy="256" r="50"/>
+    <!-- Bottom-right node (larger) -->
+    <circle cx="340" cy="362" r="50"/>
+  </g>
   
-  <!-- Folder front -->
-  <path d="M90 195 L90 390 L422 390 L422 195 Z" 
-        fill="#f5a623"/>
-  
-  <!-- Folder highlight -->
-  <path d="M90 195 L422 195 L422 215 L90 215 Z" 
-        fill="#f7c56a"/>
-  
-  <!-- Tilted Windows logo (rotated ~12 degrees like Samba) -->
-  <g transform="translate(256, 285) rotate(-12)">
-    <!-- Four panes with perspective effect -->
-    <!-- Top-left pane (smallest due to perspective) -->
-    <path d="M-70 -65 L-8 -75 L-8 -8 L-70 -3 Z" fill="#ffffff"/>
-    <!-- Top-right pane -->
-    <path d="M8 -78 L80 -90 L80 -8 L8 -8 Z" fill="#ffffff"/>
-    <!-- Bottom-left pane -->
-    <path d="M-70 12 L-8 8 L-8 70 L-70 60 Z" fill="#ffffff"/>
-    <!-- Bottom-right pane -->
-    <path d="M8 8 L80 8 L80 85 L8 73 Z" fill="#ffffff"/>
+  <!-- Connection lines -->
+  <g stroke="#ffffff" stroke-width="24" stroke-linecap="round">
+    <!-- Line from middle-left to top-right -->
+    <line x1="200" y1="230" x2="300" y2="176"/>
+    <!-- Line from middle-left to bottom-right -->
+    <line x1="200" y1="282" x2="300" y2="336"/>
   </g>
 </svg>
