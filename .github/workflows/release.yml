@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, xml, json
+      
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-dev
+      
+      - name: Run tests
+        run: |
+          composer lint
+          composer analyze
+          composer test:unit
+          composer test:integration
+      
+      - name: Build package
+        run: ./build.sh --fast
+      
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Custom SMB Shares Plugin v${{ steps.version.outputs.VERSION }}
+            
+            ### Installation
+            1. Go to Unraid WebGUI → Plugins → Install Plugin
+            2. Paste this URL: `https://raw.githubusercontent.com/${{ github.repository }}/main/custom.smb.shares.plg`
+            3. Click Install
+            
+            ### Changes
+            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+            
+            ### Checksums
+            ```
+            $(cat archive/*.md5)
+            ```
+          files: |
+            archive/*.txz
+            archive/*.md5
+            custom.smb.shares.plg
+          draft: false
+          prerelease: false
