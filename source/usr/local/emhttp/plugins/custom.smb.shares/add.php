@@ -16,17 +16,6 @@ try {
 
     // CSRF validation is handled globally by Unraid in local_prepend.php
 
-    // Process permissions if provided
-    $readList = [];
-    $writeList = [];
-    if (!empty($_POST['permissions'])) {
-        $permissions = json_decode($_POST['permissions'], true);
-        if (is_array($permissions)) {
-            $readList = $permissions['read'] ?? [];
-            $writeList = $permissions['write'] ?? [];
-        }
-    }
-
     $newShare = sanitizeShareData([
         'name' => $_POST['name'] ?? '',
         'path' => $_POST['path'] ?? '',

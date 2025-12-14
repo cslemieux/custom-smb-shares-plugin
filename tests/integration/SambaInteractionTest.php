@@ -24,6 +24,7 @@ class SambaInteractionTest extends TestCase
         
         // Initialize Samba mock with harness root (not CONFIG_BASE)
         SambaMock::init(ChrootTestEnvironment::getChrootDir());
+        SambaMock::initScripts();  // Create mock scripts immediately for lib.php functions
         
         // Create test directories
         ChrootTestEnvironment::mkdir('user/testshare');

@@ -18,17 +18,6 @@ try {
 
     $originalName = trim($_POST['original_name'] ?? '');
 
-    // Process permissions if provided
-    $readList = [];
-    $writeList = [];
-    if (!empty($_POST['permissions'])) {
-        $permissions = json_decode($_POST['permissions'], true);
-        if (is_array($permissions)) {
-            $readList = $permissions['read'] ?? [];
-            $writeList = $permissions['write'] ?? [];
-        }
-    }
-
     $updatedShare = sanitizeShareData([
         'name' => $_POST['name'] ?? '',
         'path' => $_POST['path'] ?? '',

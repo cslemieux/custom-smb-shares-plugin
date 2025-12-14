@@ -38,6 +38,14 @@ class SambaMock
     }
     
     /**
+     * Initialize mock scripts immediately (call this before using reloadSamba from lib.php)
+     */
+    public static function initScripts(): void
+    {
+        self::ensureScripts();
+    }
+    
+    /**
      * Ensure mock scripts are created (lazy initialization)
      */
     private static function ensureScripts(): void
@@ -353,23 +361,61 @@ BASH;
     
     /**
      * Validate config using testparm
+     * Uses real testparm if available, falls back to mock
      */
     public static function validateConfig()
     {
         self::ensureScripts();
         
-        $testparm = self::$harnessDir . '/usr/bin/testparm';
+        // Try real testparm first (more realistic validation)
+        $realTestparm = self::findRealTestparm();
         $configFile = self::$configFile;
-        exec(escapeshellarg($testparm) . " -s " . escapeshellarg($configFile) . " 2>&1", $output, $ret);
         
-        $valid = $ret === 0;
-        self::log("Config validation: " . ($valid ? 'PASS' : 'FAIL'));
+        if ($realTestparm !== null) {
+            // Use real testparm for accurate Samba config validation
+            exec(escapeshellarg($realTestparm) . " -s " . escapeshellarg($configFile) . " 2>&1", $output, $ret);
+            self::log("Config validation (real testparm): " . ($ret === 0 ? 'PASS' : 'FAIL'));
+        } else {
+            // Fall back to mock testparm
+            $testparm = self::$harnessDir . '/usr/bin/testparm';
+            exec(escapeshellarg($testparm) . " -s " . escapeshellarg($configFile) . " 2>&1", $output, $ret);
+            self::log("Config validation (mock testparm): " . ($ret === 0 ? 'PASS' : 'FAIL'));
+        }
         
         return [
-            'valid' => $valid,
+            'valid' => $ret === 0,
             'output' => implode("\n", $output),
-            'exit_code' => $ret
+            'exit_code' => $ret,
+            'real_testparm' => $realTestparm !== null
         ];
+    }
+    
+    /**
+     * Find real testparm binary if available
+     */
+    private static function findRealTestparm(): ?string
+    {
+        // Common locations for testparm
+        $locations = [
+            '/opt/homebrew/bin/testparm',  // macOS Homebrew ARM
+            '/usr/local/bin/testparm',      // macOS Homebrew Intel
+            '/usr/bin/testparm',            // Linux
+            '/usr/sbin/testparm',           // Some Linux distros
+        ];
+        
+        foreach ($locations as $path) {
+            if (file_exists($path) && is_executable($path)) {
+                return $path;
+            }
+        }
+        
+        // Try PATH
+        $which = trim(shell_exec('which testparm 2>/dev/null') ?? '');
+        if (!empty($which) && file_exists($which)) {
+            return $which;
+        }
+        
+        return null;
     }
     
     /**
