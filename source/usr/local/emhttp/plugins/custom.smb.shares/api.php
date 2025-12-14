@@ -187,7 +187,7 @@ if ($action === 'listBackups') {
 if ($action === 'viewBackup') {
     require_once __DIR__ . '/include/lib.php';
     $filename = $_GET['filename'] ?? $_POST['filename'] ?? '';
-    if (empty($filename) || !preg_match('/^shares_[\d-_]+\.json$/', $filename)) {
+    if (empty($filename) || !preg_match('/^shares_[\d_-]+\.json$/', $filename)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
         exit;
@@ -205,7 +205,7 @@ if ($action === 'viewBackup') {
 if ($action === 'restoreBackup') {
     require_once __DIR__ . '/include/lib.php';
     $filename = $_GET['filename'] ?? $_POST['filename'] ?? '';
-    if (empty($filename) || !preg_match('/^shares_[\d-_]+\.json$/', $filename)) {
+    if (empty($filename) || !preg_match('/^shares_[\d_-]+\.json$/', $filename)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
         exit;
@@ -225,7 +225,7 @@ if ($action === 'restoreBackup') {
 if ($action === 'deleteBackup') {
     require_once __DIR__ . '/include/lib.php';
     $filename = $_GET['filename'] ?? $_POST['filename'] ?? '';
-    if (empty($filename) || !preg_match('/^shares_[\d-_]+\.json$/', $filename)) {
+    if (empty($filename) || !preg_match('/^shares_[\d_-]+\.json$/', $filename)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
         exit;

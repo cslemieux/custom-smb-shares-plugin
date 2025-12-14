@@ -12,14 +12,15 @@ require_once __DIR__ . '/UnraidFunctions.php';
 require_once __DIR__ . '/UnraidJavaScript.php';
 
 // Set CONFIG_BASE globally for all requests
+// DOCUMENT_ROOT is harness_dir/usr/local/emhttp
+// CONFIG_BASE should be harness_dir/boot/config
+// So we need to go up 3 levels from DOCUMENT_ROOT
 if (!defined('CONFIG_BASE')) {
-    $configPath = $_SERVER['DOCUMENT_ROOT'] . '/../boot/config';
-    // Resolve the path to handle /../
-    $resolvedPath = realpath(dirname($configPath));
-    if ($resolvedPath) {
-        $configPath = $resolvedPath . '/' . basename($configPath);
-    }
+    // Go from usr/local/emhttp up to harness root, then into boot/config
+    $harnessRoot = dirname($_SERVER['DOCUMENT_ROOT'], 3);
+    $configPath = $harnessRoot . '/boot/config';
     define('CONFIG_BASE', $configPath);
+    error_log("Router: CONFIG_BASE set to: $configPath");
 }
 
 // Add harness bin directories to PATH for Samba mock scripts
@@ -75,21 +76,54 @@ if (preg_match('#^/plugins/custom\.smb\.shares/(js|css|images)/(.+)$#', $path, $
     return false;
 }
 
-// Map /Settings/CustomSMBShares to /plugins/custom.smb.shares/CustomSMBShares.page
-if (preg_match('#^/Settings/CustomSMBShares#', $path)) {
-    $path = '/plugins/custom.smb.shares/CustomSMBShares.page';
-    error_log("Router: Mapped to: $path");
+// Auto-discover and map all .page files from the plugin
+// This mimics Unraid's behavior where /PageName maps to /plugins/*/PageName.page
+$pageRoutes = discoverPageRoutes($_SERVER['DOCUMENT_ROOT']);
+$cleanPath = rtrim($path, '/');
+
+if (isset($pageRoutes[$cleanPath])) {
+    $path = $pageRoutes[$cleanPath];
+    error_log("Router: Auto-mapped $cleanPath to: $path");
 }
 
-// Map /Settings/TestBad
-if (preg_match('#^/Settings/TestBad#', $path)) {
-    $path = '/plugins/custom.smb.shares/TestBad.page';
-}
-
-// Map /Settings/TestMalformed to /plugins/custom.smb.shares/TestMalformed.page
-if (preg_match('#^/Settings/TestMalformed#', $path)) {
-    $path = '/plugins/custom.smb.shares/TestMalformed.page';
-    error_log("Router: Mapped to: $path");
+/**
+ * Discover all .page files and create route mappings
+ * Caches results for performance
+ */
+function discoverPageRoutes(string $docRoot): array {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    
+    $routes = [];
+    $pluginDir = $docRoot . '/plugins/custom.smb.shares';
+    
+    if (!is_dir($pluginDir)) {
+        error_log("Router: Plugin directory not found: $pluginDir");
+        return $routes;
+    }
+    
+    $pageFiles = glob($pluginDir . '/*.page');
+    foreach ($pageFiles as $pageFile) {
+        $basename = basename($pageFile, '.page');
+        
+        // Create multiple route patterns for each page:
+        // /PageName -> /plugins/custom.smb.shares/PageName.page
+        // /Settings/PageName -> /plugins/custom.smb.shares/PageName.page
+        // /PageName.page -> /plugins/custom.smb.shares/PageName.page
+        
+        $pagePath = '/plugins/custom.smb.shares/' . basename($pageFile);
+        
+        $routes['/' . $basename] = $pagePath;
+        $routes['/Settings/' . $basename] = $pagePath;
+        $routes[$pagePath] = $pagePath;
+        
+        error_log("Router: Registered routes for $basename");
+    }
+    
+    $cache = $routes;
+    return $routes;
 }
 
 // AJAX tracing log with file locking
@@ -317,10 +351,8 @@ if (preg_match('/\.page$/', $path)) {
 <div id="sb-overlay" onclick="Shadowbox.close()"></div>
 <div id="sb-player"></div>
 <?php
-    // Define CONFIG_BASE for the plugin
-    if (!defined('CONFIG_BASE')) {
-        define('CONFIG_BASE', $_SERVER['DOCUMENT_ROOT'] . '/../boot/config');
-    }
+    // CONFIG_BASE is already defined at the top of the router
+    // No need to redefine here
     
     // Set up $docroot like Unraid does - this is critical for includes
     // Unraid sets $docroot = $_SERVER['DOCUMENT_ROOT'] in local_prepend.php
