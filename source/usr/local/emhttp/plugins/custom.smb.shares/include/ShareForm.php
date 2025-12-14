@@ -42,15 +42,64 @@ $showUserAccess = in_array($security, ['secure', 'private']);
 #user-access-title { margin-top: 2rem; }
 #user-access-section { margin-top: 0; }
 
-/* Permission grid styles */
-.permission-section { margin: 1rem 0; }
-.permission-label { font-weight: bold; display: block; margin-bottom: 0.5rem; }
-.permission-preview { font-family: monospace; background: var(--shade-bg-color); padding: 2px 8px; border-radius: 3px; margin-left: 0.5rem; }
-.permission-grid { border-collapse: collapse; margin: 0.5rem 0; }
-.permission-grid th, .permission-grid td { padding: 0.4rem 1rem; text-align: center; border: 1px solid var(--border-color); }
-.permission-grid th { background: var(--shade-bg-color); font-weight: normal; font-size: 0.9em; }
-.permission-grid td:first-child { text-align: left; font-weight: bold; background: var(--shade-bg-color); }
-.permission-grid input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+/* Permission grid - matches Unraid's dl/dt/dd form layout */
+.permission-row {
+    display: grid;
+    grid-template-columns: 35% 1fr;
+    gap: 1.5rem 2rem;
+    padding: 0.75rem 0;
+    align-items: start;
+}
+.permission-label {
+    text-align: right;
+    font-weight: 600;
+}
+.permission-preview {
+    font-family: monospace;
+    background: var(--shade-bg-color);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+    margin-left: 0.25rem;
+}
+.permission-grid {
+    border-collapse: collapse;
+    width: auto;
+}
+.permission-grid th, .permission-grid td {
+    padding: 4px 10px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+.permission-grid th {
+    background: var(--shade-bg-color);
+    font-weight: 600;
+    font-size: 0.85em;
+    min-width: 36px;
+}
+.permission-grid td:first-child {
+    text-align: right;
+    font-weight: 500;
+    background: var(--shade-bg-color);
+    padding-right: 10px;
+}
+.permission-grid input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    margin: 0;
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 768px) {
+    .permission-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .permission-label {
+        text-align: left;
+    }
+}
 </style>
 
 <form markdown="1" method="POST" action="/plugins/custom.smb.shares/<?=$isNew ? 'add' : 'update'?>.php" onsubmit="return prepareForm(this)">
@@ -148,53 +197,35 @@ _(Enhanced macOS support)_:
 <div class="title advanced"><span class="left inline-flex flex-row items-center gap-1"><i class="fa fa-lock title"></i>_(Permission Settings)_</span><span class="right"></span></div>
 <div markdown="1" class="shade advanced">
 
-<div class="permission-section">
-<label class="permission-label">_(File permissions)_ <span class="permission-preview" id="create_mask_preview"><?=htmlspecialchars($share['create_mask'] ?? '0664')?></span></label>
+<div class="permission-row">
+<div class="permission-label">_(File permissions)_ <span class="permission-preview" id="create_mask_preview"><?=htmlspecialchars($share['create_mask'] ?? '0664')?></span></div>
+<div class="permission-content">
 <input type="hidden" name="create_mask" value="<?=htmlspecialchars($share['create_mask'] ?? '0664')?>">
 <table class="permission-grid">
-<thead><tr><th></th><th>_(Read)_</th><th>_(Write)_</th><th>_(Execute)_</th></tr></thead>
-<tbody>
-<tr><td>_(Owner)_</td>
-<td><input type="checkbox" data-target="create_mask" data-role="owner" data-perm="r"></td>
-<td><input type="checkbox" data-target="create_mask" data-role="owner" data-perm="w"></td>
-<td><input type="checkbox" data-target="create_mask" data-role="owner" data-perm="x"></td></tr>
-<tr><td>_(Group)_</td>
-<td><input type="checkbox" data-target="create_mask" data-role="group" data-perm="r"></td>
-<td><input type="checkbox" data-target="create_mask" data-role="group" data-perm="w"></td>
-<td><input type="checkbox" data-target="create_mask" data-role="group" data-perm="x"></td></tr>
-<tr><td>_(Others)_</td>
-<td><input type="checkbox" data-target="create_mask" data-role="others" data-perm="r"></td>
-<td><input type="checkbox" data-target="create_mask" data-role="others" data-perm="w"></td>
-<td><input type="checkbox" data-target="create_mask" data-role="others" data-perm="x"></td></tr>
-</tbody>
+<tr><th></th><th>R</th><th>W</th><th>X</th></tr>
+<tr><td>Owner</td><td><input type="checkbox" data-target="create_mask" data-role="owner" data-perm="r"></td><td><input type="checkbox" data-target="create_mask" data-role="owner" data-perm="w"></td><td><input type="checkbox" data-target="create_mask" data-role="owner" data-perm="x"></td></tr>
+<tr><td>Group</td><td><input type="checkbox" data-target="create_mask" data-role="group" data-perm="r"></td><td><input type="checkbox" data-target="create_mask" data-role="group" data-perm="w"></td><td><input type="checkbox" data-target="create_mask" data-role="group" data-perm="x"></td></tr>
+<tr><td>Others</td><td><input type="checkbox" data-target="create_mask" data-role="others" data-perm="r"></td><td><input type="checkbox" data-target="create_mask" data-role="others" data-perm="w"></td><td><input type="checkbox" data-target="create_mask" data-role="others" data-perm="x"></td></tr>
 </table>
 </div>
+</div>
 
-> Permissions for newly created files. Default: Owner read/write, Group read/write, Others read.
+> Permissions for newly created files. Default: Owner read/write, Group read/write, Others read (0664).
 
-<div class="permission-section">
-<label class="permission-label">_(Directory permissions)_ <span class="permission-preview" id="directory_mask_preview"><?=htmlspecialchars($share['directory_mask'] ?? '0775')?></span></label>
+<div class="permission-row">
+<div class="permission-label">_(Directory permissions)_ <span class="permission-preview" id="directory_mask_preview"><?=htmlspecialchars($share['directory_mask'] ?? '0775')?></span></div>
+<div class="permission-content">
 <input type="hidden" name="directory_mask" value="<?=htmlspecialchars($share['directory_mask'] ?? '0775')?>">
 <table class="permission-grid">
-<thead><tr><th></th><th>_(Read)_</th><th>_(Write)_</th><th>_(Execute)_</th></tr></thead>
-<tbody>
-<tr><td>_(Owner)_</td>
-<td><input type="checkbox" data-target="directory_mask" data-role="owner" data-perm="r"></td>
-<td><input type="checkbox" data-target="directory_mask" data-role="owner" data-perm="w"></td>
-<td><input type="checkbox" data-target="directory_mask" data-role="owner" data-perm="x"></td></tr>
-<tr><td>_(Group)_</td>
-<td><input type="checkbox" data-target="directory_mask" data-role="group" data-perm="r"></td>
-<td><input type="checkbox" data-target="directory_mask" data-role="group" data-perm="w"></td>
-<td><input type="checkbox" data-target="directory_mask" data-role="group" data-perm="x"></td></tr>
-<tr><td>_(Others)_</td>
-<td><input type="checkbox" data-target="directory_mask" data-role="others" data-perm="r"></td>
-<td><input type="checkbox" data-target="directory_mask" data-role="others" data-perm="w"></td>
-<td><input type="checkbox" data-target="directory_mask" data-role="others" data-perm="x"></td></tr>
-</tbody>
+<tr><th></th><th>R</th><th>W</th><th>X</th></tr>
+<tr><td>Owner</td><td><input type="checkbox" data-target="directory_mask" data-role="owner" data-perm="r"></td><td><input type="checkbox" data-target="directory_mask" data-role="owner" data-perm="w"></td><td><input type="checkbox" data-target="directory_mask" data-role="owner" data-perm="x"></td></tr>
+<tr><td>Group</td><td><input type="checkbox" data-target="directory_mask" data-role="group" data-perm="r"></td><td><input type="checkbox" data-target="directory_mask" data-role="group" data-perm="w"></td><td><input type="checkbox" data-target="directory_mask" data-role="group" data-perm="x"></td></tr>
+<tr><td>Others</td><td><input type="checkbox" data-target="directory_mask" data-role="others" data-perm="r"></td><td><input type="checkbox" data-target="directory_mask" data-role="others" data-perm="w"></td><td><input type="checkbox" data-target="directory_mask" data-role="others" data-perm="x"></td></tr>
 </table>
 </div>
+</div>
 
-> Permissions for newly created directories. Default: Owner full access, Group read/execute, Others read/execute.
+> Permissions for newly created directories. Default: Owner full, Group read/execute, Others read/execute (0775).
 
 _(Force user)_:
 : <input type="text" name="force_user" value="<?=htmlspecialchars($share['force_user'] ?? '')?>" placeholder="_(e.g. nobody)_">
@@ -407,7 +438,6 @@ function prepareForm(form) {
 
 // Permission mask helpers
 function octalToCheckboxes(octal, target) {
-    // Parse octal string (e.g., "0664" or "664")
     var val = octal.replace(/^0/, '');
     while (val.length < 3) val = '0' + val;
     
