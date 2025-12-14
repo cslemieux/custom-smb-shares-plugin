@@ -279,11 +279,30 @@ function generateSambaConfig(array $shares): string
             }
         }
 
-        // Apply Unraid defaults
-        $config .= "    force user = nobody\n";
-        $config .= "    force group = users\n";
-        $config .= "    create mask = 0664\n";
-        $config .= "    directory mask = 0775\n";
+        // Apply permission settings (use defaults if not specified)
+        $forceUser = $share['force_user'] ?? 'nobody';
+        $forceGroup = $share['force_group'] ?? 'users';
+        $createMask = $share['create_mask'] ?? '0664';
+        $directoryMask = $share['directory_mask'] ?? '0775';
+        $hideDotFiles = $share['hide_dot_files'] ?? 'yes';
+
+        if (!empty($forceUser)) {
+            $config .= "    force user = {$forceUser}\n";
+        }
+        if (!empty($forceGroup)) {
+            $config .= "    force group = {$forceGroup}\n";
+        }
+        $config .= "    create mask = {$createMask}\n";
+        $config .= "    directory mask = {$directoryMask}\n";
+        $config .= "    hide dot files = {$hideDotFiles}\n";
+
+        // Host-based access control
+        if (!empty($share['hosts_allow'])) {
+            $config .= "    hosts allow = {$share['hosts_allow']}\n";
+        }
+        if (!empty($share['hosts_deny'])) {
+            $config .= "    hosts deny = {$share['hosts_deny']}\n";
+        }
 
         $config .= "\n";
     }

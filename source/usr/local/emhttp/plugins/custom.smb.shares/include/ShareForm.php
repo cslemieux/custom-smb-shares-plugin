@@ -156,6 +156,16 @@ _(Force group)_:
 : <input type="text" name="force_group" value="<?=htmlspecialchars($share['force_group'] ?? '')?>" placeholder="_(e.g. users)_">
 
 > Force all file operations to use this group. Leave empty to use connecting user's group.
+
+_(Hosts allow)_:
+: <input type="text" name="hosts_allow" value="<?=htmlspecialchars($share['hosts_allow'] ?? '')?>" placeholder="_(e.g. 192.168.1.0/24)_">
+
+> Comma-separated list of hosts/networks allowed to access this share. Leave empty to allow all.
+
+_(Hosts deny)_:
+: <input type="text" name="hosts_deny" value="<?=htmlspecialchars($share['hosts_deny'] ?? '')?>" placeholder="_(e.g. 192.168.1.100)_">
+
+> Comma-separated list of hosts/networks denied access to this share. Deny rules are checked after allow rules.
 </div>
 
 &nbsp;

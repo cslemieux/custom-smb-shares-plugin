@@ -38,7 +38,12 @@ try {
         'user_access' => $_POST['user_access'] ?? '{}',
         'hosts_allow' => $_POST['hosts_allow'] ?? '',
         'hosts_deny' => $_POST['hosts_deny'] ?? '',
-        'fruit' => $_POST['fruit'] ?? 'no'
+        'fruit' => $_POST['fruit'] ?? 'no',
+        'create_mask' => $_POST['create_mask'] ?? '0664',
+        'directory_mask' => $_POST['directory_mask'] ?? '0775',
+        'force_user' => $_POST['force_user'] ?? 'nobody',
+        'force_group' => $_POST['force_group'] ?? 'users',
+        'hide_dot_files' => $_POST['hide_dot_files'] ?? 'yes'
     ]);
 
     $errors = validateShare($newShare);

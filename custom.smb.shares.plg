@@ -7,7 +7,7 @@
 <!ENTITY launch    "Settings/CustomSMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "54d33caba31bf75870b7e0ea6740d6c8">
+<!ENTITY md5       "7eb1d00ab94de9ba088b009ee19df846">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
