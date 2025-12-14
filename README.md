@@ -26,16 +26,20 @@ Create and manage custom SMB shares on your Unraid server with a user-friendly w
 
 ### Manual Installation
 
-1. Download the latest `.plg` file from [Releases](https://github.com/YOUR_USERNAME/custom-smb-shares-plugin/releases)
-2. Navigate to **Plugins** > **Install Plugin**
-3. Paste the plugin URL or upload the `.plg` file
-4. Click **Install**
+1. Navigate to **Plugins** > **Install Plugin**
+2. Paste this URL:
+   ```
+   https://raw.githubusercontent.com/cslemieux/custom-smb-shares-plugin/main/custom.smb.shares.plg
+   ```
+3. Click **Install**
+
+Or download the `.plg` file from [Releases](https://github.com/cslemieux/custom-smb-shares-plugin/releases) and upload it.
 
 ## Usage
 
 ### Accessing the Plugin
 
-Navigate to **Settings** > **Network Services** > **Custom SMB Shares**
+Navigate to **Settings** > **Network Services** > **SMB Shares**
 
 ### Creating a Share
 
@@ -89,7 +93,7 @@ Navigate to **Settings** > **Network Services** > **Custom SMB Shares**
 
 ## Support
 
-- [GitHub Issues](https://github.com/YOUR_USERNAME/custom-smb-shares-plugin/issues)
+- [GitHub Issues](https://github.com/cslemieux/custom-smb-shares-plugin/issues)
 - [Unraid Forums](https://forums.unraid.net/)
 
 ## License
