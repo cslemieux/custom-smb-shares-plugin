@@ -172,39 +172,61 @@ function reloadSamba() {
 }
 
 function importConfig() {
-    // Create hidden file input for file selection
-    var fileInput = $('<input type="file" accept=".json" style="display:none">');
-    $('body').append(fileInput);
-    
-    fileInput.on('change', function(e) {
-        var file = e.target.files[0];
-        if (!file) {
-            fileInput.remove();
-            return;
+    swal({
+        title: "_(Import Configuration)_",
+        text: "<textarea id='importJsonText' style='width:100%;height:200px;' placeholder='_(Paste JSON configuration here)_'></textarea>" +
+              "<br><button type='button' class='btn' id='importFromFileBtn' style='margin-top:10px'>_(Import from File)_</button>",
+        html: true,
+        showCancelButton: true,
+        confirmButtonText: "_(Import)_",
+        cancelButtonText: "_(Cancel)_",
+        closeOnConfirm: false
+    }, function(confirmed) {
+        if (!confirmed) return;
+        var content = $('#importJsonText').val();
+        if (!content) {
+            swal.showInputError("_(Please paste a configuration or use Import from File)_");
+            return false;
         }
-        
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            var content = e.target.result;
-            try {
-                JSON.parse(content); // Validate JSON
-                $.post('/plugins/custom.smb.shares/api.php', { action: 'import', config: content }, function(response) {
-                    if (response.success) {
-                        showSuccess("_(Configuration imported successfully)_");
-                        setTimeout(function() { location.reload(); }, 1000);
-                    } else {
-                        showError(response.error || "_(Import failed)_");
-                    }
-                }, 'json');
-            } catch (err) {
-                showError("_(Invalid JSON file)_");
-            }
-            fileInput.remove();
-        };
-        reader.readAsText(file);
+        doImport(content);
     });
     
-    fileInput.click();
+    // Attach file button handler after modal renders
+    setTimeout(function() {
+        $('#importFromFileBtn').on('click', function() {
+            var fileInput = $('<input type="file" accept=".json" style="display:none">');
+            $('body').append(fileInput);
+            fileInput.on('change', function(e) {
+                var file = e.target.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#importJsonText').val(e.target.result);
+                    };
+                    reader.readAsText(file);
+                }
+                fileInput.remove();
+            });
+            fileInput.click();
+        });
+    }, 100);
+}
+
+function doImport(content) {
+    try {
+        JSON.parse(content);
+        $.post('/plugins/custom.smb.shares/api.php', { action: 'import', config: content }, function(response) {
+            if (response.success) {
+                swal.close();
+                showSuccess("_(Configuration imported successfully)_");
+                setTimeout(function() { location.reload(); }, 1000);
+            } else {
+                swal.showInputError(response.error || "_(Import failed)_");
+            }
+        }, 'json');
+    } catch (err) {
+        swal.showInputError("_(Invalid JSON format)_");
+    }
 }
 
 function exportConfig() {
