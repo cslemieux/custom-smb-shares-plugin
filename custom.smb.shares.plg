@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2025.12.14">
-<!ENTITY launch    "Settings/CustomSMBShares">
+<!ENTITY version   "2025.01.19">
+<!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "7eb1d00ab94de9ba088b009ee19df846">
+<!ENTITY md5       "PLACEHOLDER">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -18,28 +18,30 @@
         launch="&launch;" 
         pluginURL="&pluginURL;"
         min="6.12.0"
-        support="https://forums.unraid.net/topic/xxxxx"
-        icon="share">
+        support="https://github.com/&github;/issues"
+        icon="share-alt">
 
 <CHANGES>
 ##&name;
 
-###2025.12.14
-- Initial public release
-- Add custom SMB shares with full validation
-- Client-side and server-side validation
-- AJAX form submission with feedback
-- Automated test suite (189 tests, 100% passing)
-- HTML5 validation patterns
-- Page-based UI (Unraid standard)
-- Path browser with file tree
-- Automatic Samba configuration and reload
-- Service status display with auto-refresh
+###2025.01.19
+- Initial release v1.0.0
+- Full share CRUD operations (Create, Read, Update, Delete)
+- Enable/disable toggle with loading states
+- Clone share functionality
+- Import/export configuration as JSON
+- Backup management with configurable retention
+- macOS/Time Machine support with Fruit VFS
+- Advanced permission settings (masks, force user/group)
+- Host allow/deny lists
+- Security modes: Public, Secure, Private
 - User/group browser with search
-- Quick presets (Basic, Read-Only, Secure, macOS, Time Machine)
-- Import/Export configuration (JSON)
-- Comprehensive error handling
-- CI/CD with GitHub Actions
+- Path browser with visual directory picker
+- Real-time validation with helpful error messages
+- Toast notifications for all actions
+- Feature icons for quick visual reference
+- Automatic Samba configuration and reload
+- Comprehensive test suite (274 tests)
 </CHANGES>
 
 <!-- Pre-install: cleanup old versions -->
@@ -53,7 +55,7 @@ rm -f $(ls &plgPATH;/&name;*.md5 2>/dev/null | grep -v '&version;')
 
 <!-- Install the plugin package -->
 <FILE Name="&plgPATH;/&name;-&version;-x86_64-1.txz" Run="upgradepkg --install-new">
-<URL>https://raw.githubusercontent.com/&github;/main/archive/&name;-&version;-x86_64-1.txz</URL>
+<URL>https://github.com/&github;/releases/download/v&version;/&name;-&version;-x86_64-1.txz</URL>
 <MD5>&md5;</MD5>
 </FILE>
 
@@ -62,21 +64,29 @@ rm -f $(ls &plgPATH;/&name;*.md5 2>/dev/null | grep -v '&version;')
 <INLINE>
 # Create config directory
 mkdir -p &plgPATH;
+mkdir -p &plgPATH;/backups
 
 # Initialize shares.json if it doesn't exist
 if [ ! -f "&plgPATH;/shares.json" ]; then
   echo "[]" > &plgPATH;/shares.json
 fi
 
+# Initialize settings.cfg if it doesn't exist
+if [ ! -f "&plgPATH;/settings.cfg" ]; then
+  echo 'SERVICE="enabled"' > &plgPATH;/settings.cfg
+  echo 'BACKUP_COUNT="10"' >> &plgPATH;/settings.cfg
+fi
+
 # Set permissions
 chmod 644 &plgPATH;/shares.json
+chmod 644 &plgPATH;/settings.cfg
 chmod 755 &plugdir;/scripts/*.sh 2>/dev/null || true
 
 echo ""
 echo "----------------------------------------------------"
 echo " &name; has been installed."
 echo " Version: &version;"
-echo " Access via: Settings > SMB Shares"
+echo " Access via: Tasks > SMB Shares"
 echo "----------------------------------------------------"
 echo ""
 </INLINE>
