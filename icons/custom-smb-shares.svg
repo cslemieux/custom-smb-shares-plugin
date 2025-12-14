@@ -2,42 +2,28 @@
   <!-- Background circle -->
   <circle cx="256" cy="256" r="240" fill="#4a90d9"/>
   
-  <!-- Folder base -->
-  <path d="M100 180 L100 380 L412 380 L412 180 L260 180 L230 140 L100 140 Z" 
-        fill="#f5a623" stroke="#e09000" stroke-width="4"/>
+  <!-- Folder back/tab -->
+  <path d="M90 170 L90 390 L422 390 L422 170 L270 170 L235 125 L90 125 Z" 
+        fill="#e09000"/>
   
   <!-- Folder front -->
-  <path d="M100 200 L100 380 L412 380 L412 200 Z" 
-        fill="#f7b84e"/>
+  <path d="M90 195 L90 390 L422 390 L422 195 Z" 
+        fill="#f5a623"/>
   
-  <!-- Network/Share symbol - three connected nodes -->
-  <g fill="#ffffff" stroke="#4a90d9" stroke-width="3">
-    <!-- Center node -->
-    <circle cx="256" cy="280" r="28"/>
-    <!-- Top-right node -->
-    <circle cx="340" cy="220" r="22"/>
-    <!-- Bottom-right node -->
-    <circle cx="340" cy="340" r="22"/>
-    <!-- Top-left node -->
-    <circle cx="172" cy="220" r="22"/>
-    <!-- Bottom-left node -->
-    <circle cx="172" cy="340" r="22"/>
-  </g>
+  <!-- Folder highlight -->
+  <path d="M90 195 L422 195 L422 215 L90 215 Z" 
+        fill="#f7c56a"/>
   
-  <!-- Connection lines -->
-  <g stroke="#ffffff" stroke-width="6" stroke-linecap="round">
-    <line x1="280" y1="265" x2="320" y2="235"/>
-    <line x1="280" y1="295" x2="320" y2="325"/>
-    <line x1="232" y1="265" x2="192" y2="235"/>
-    <line x1="232" y1="295" x2="192" y2="325"/>
-  </g>
-  
-  <!-- Inner dots for nodes -->
-  <g fill="#4a90d9">
-    <circle cx="256" cy="280" r="12"/>
-    <circle cx="340" cy="220" r="9"/>
-    <circle cx="340" cy="340" r="9"/>
-    <circle cx="172" cy="220" r="9"/>
-    <circle cx="172" cy="340" r="9"/>
+  <!-- Tilted Windows logo (rotated ~12 degrees like Samba) -->
+  <g transform="translate(256, 285) rotate(-12)">
+    <!-- Four panes with perspective effect -->
+    <!-- Top-left pane (smallest due to perspective) -->
+    <path d="M-70 -65 L-8 -75 L-8 -8 L-70 -3 Z" fill="#ffffff"/>
+    <!-- Top-right pane -->
+    <path d="M8 -78 L80 -90 L80 -8 L8 -8 Z" fill="#ffffff"/>
+    <!-- Bottom-left pane -->
+    <path d="M-70 12 L-8 8 L-8 70 L-70 60 Z" fill="#ffffff"/>
+    <!-- Bottom-right pane -->
+    <path d="M8 8 L80 8 L80 85 L8 73 Z" fill="#ffffff"/>
   </g>
 </svg>
