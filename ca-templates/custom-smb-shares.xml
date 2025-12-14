@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Containers>
+  <PluginURL>https://raw.githubusercontent.com/cslemieux/custom-smb-shares-plugin/main/custom.smb.shares.plg</PluginURL>
+  <PluginAuthor>cslemieux</PluginAuthor>
+  <Name>Custom SMB Shares</Name>
+  <Beta>False</Beta>
+  <Category>Tools:System Network:Management</Category>
+  <Description>
+Create and manage custom SMB/Samba shares beyond Unraid's built-in share management. Define shares with full control over paths, permissions, access settings, and advanced Samba options. Features include path browser, user/group selection, quick presets (Basic, Read-Only, Secure, macOS, Time Machine), and import/export configuration.
+  </Description>
+  <Overview>
+Create custom SMB shares with full control over Samba configuration options. Supports advanced settings like VFS objects, permissions masks, and Time Machine compatibility.
+  </Overview>
+  <Support>https://forums.unraid.net/topic/xxxxx</Support>
+  <Project>https://github.com/cslemieux/custom-smb-shares-plugin</Project>
+  <Icon>https://raw.githubusercontent.com/cslemieux/custom-smb-shares-plugin/main/icons/custom-smb-shares.png</Icon>
+  <IconFA>share-alt</IconFA>
+  <MinVer>6.12.0</MinVer>
+  <Date>2025-01-18</Date>
+  <Changes>
+### 2025.01.18
+- Initial release
+- Custom SMB share creation with validation
+- Path browser with file tree navigation
+- User/group browser with search
+- Quick presets (Basic, Read-Only, Secure, macOS, Time Machine)
+- Import/Export configuration (JSON)
+- Automatic Samba configuration and reload
+- Service status display with auto-refresh
+  </Changes>
+</Containers>

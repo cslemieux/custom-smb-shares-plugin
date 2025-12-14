@@ -45,6 +45,8 @@ scripts/test-modal.js
 scripts/validate-modal.php
 scripts/automated-manual-tests.sh
 scripts/analyze-dom.sh
+scripts/test-modal-final.php
+scripts/verify-deployment.sh
 
 # Test files with local references
 run-ui-tests.sh
@@ -58,3 +60,30 @@ TESTING-COMPLETE.md
 docs/SSH-SETUP.md
 unraid-samba-research.md
 COMPREHENSIVE-TESTING-PLAN.md
+
+# Development/debug files
+cleanup-harness.sh
+composer.lock
+docs-mirror-urls.log
+file-modification-best-practices.txt
+kiro-critical-reminders.txt
+nosed.txt
+outerhtml
+plugin.dom
+scan-dependencies.php
+test-*.php
+test-*.html
+verify-*.php
+verify-*.sh
+
+# AI assistant context (not for public release)
+.kiro/
+
+# Unraid docs mirror (large, not needed for plugin)
+unraid-docs-official/
+
+# Screenshots (development only)
+screenshots/
+
+# Test harness dependencies
+tests/harness/dependencies.json
