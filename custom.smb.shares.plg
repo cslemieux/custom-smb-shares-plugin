@@ -56,12 +56,11 @@
 <!-- Install script -->
 <FILE Run="/bin/bash" Method="install">
 <INLINE>
-<![CDATA[
 #!/bin/bash
 
 # Verify unRAID version
 source /etc/unraid-version
-if [[ ${version:0:4} < "6.12" ]]; then
+if [[ ${version:0:4} &lt; "6.12" ]]; then
   echo "ERROR: Unraid 6.12 or higher required"
   exit 1
 fi
@@ -104,14 +103,12 @@ echo " Version: &version;"
 echo " Access via: Settings > Custom SMB Shares"
 echo "-----------------------------------------------------------"
 echo ""
-]]>
 </INLINE>
 </FILE>
 
 <!-- Remove script -->
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
-<![CDATA[
 #!/bin/bash
 
 echo "Removing &name;..."
@@ -131,7 +128,6 @@ echo " Configuration files preserved in &plgPATH;"
 echo " To remove config: rm -rf &plgPATH;"
 echo "-----------------------------------------------------------"
 echo ""
-]]>
 </INLINE>
 </FILE>
 
