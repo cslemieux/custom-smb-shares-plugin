@@ -5,8 +5,8 @@
 <!ENTITY author    "cslemieux">
 <!ENTITY version   "2025.12.14">
 <!ENTITY launch    "Settings/CustomSMBShares">
-<!ENTITY gitURL    "https://raw.githubusercontent.com/cslemieux/unraid-custom-smb-shares/main">
-<!ENTITY pluginURL "&gitURL;/custom.smb.shares.plg">
+<!ENTITY github    "cslemieux/unraid-custom-smb-shares">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
 <!ENTITY md5       "54d33caba31bf75870b7e0ea6740d6c8">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
@@ -42,44 +42,24 @@
 - CI/CD with GitHub Actions
 </CHANGES>
 
-<!-- Download plugin package (Slackware naming: name-version-arch-build.txz) -->
-<FILE Name="&plgPATH;/&name;-&version;-x86_64-1.txz">
-<URL>&gitURL;/archive/&name;-&version;-x86_64-1.txz</URL>
+<!-- Pre-install: cleanup old versions -->
+<FILE Run="/bin/bash">
+<INLINE>
+echo "Cleaning up old versions..."
+rm -f $(ls &plgPATH;/&name;*.txz 2>/dev/null | grep -v '&version;')
+rm -f $(ls &plgPATH;/&name;*.md5 2>/dev/null | grep -v '&version;')
+</INLINE>
+</FILE>
+
+<!-- Install the plugin package -->
+<FILE Name="&plgPATH;/&name;-&version;-x86_64-1.txz" Run="upgradepkg --install-new">
+<URL>https://raw.githubusercontent.com/&github;/main/archive/&name;-&version;-x86_64-1.txz</URL>
 <MD5>&md5;</MD5>
 </FILE>
 
-<!-- Download MD5 checksum -->
-<FILE Name="&plgPATH;/&name;-&version;.md5">
-<URL>&gitURL;/archive/&name;-&version;.md5</URL>
-</FILE>
-
-<!-- Install script -->
-<FILE Run="/bin/bash" Method="install">
+<!-- Post-install: setup config -->
+<FILE Run="/bin/bash">
 <INLINE>
-#!/bin/bash
-
-# Verify unRAID version
-source /etc/unraid-version
-if [[ ${version:0:4} &lt; "6.12" ]]; then
-  echo "ERROR: Unraid 6.12 or higher required"
-  exit 1
-fi
-
-# Verify MD5 checksum
-sum1=$(/usr/bin/md5sum &plgPATH;/&name;-&version;-x86_64-1.txz | awk '{print $1}')
-sum2=$(/usr/bin/cat &plgPATH;/&name;-&version;.md5)
-if [ "${sum1}" != "${sum2}" ]; then
-  echo "ERROR: MD5 checksum mismatch"
-  echo "Expected: ${sum2}"
-  echo "Got: ${sum1}"
-  rm -f &plgPATH;/&name;-&version;-x86_64-1.txz &plgPATH;/&name;-&version;.md5
-  exit 1
-fi
-
-# Install package
-echo "Installing &name; v&version;..."
-upgradepkg --install-new &plgPATH;/&name;-&version;-x86_64-1.txz
-
 # Create config directory
 mkdir -p &plgPATH;
 
@@ -92,16 +72,12 @@ fi
 chmod 644 &plgPATH;/shares.json
 chmod 755 &plugdir;/scripts/*.sh 2>/dev/null || true
 
-# Cleanup old versions
-find &plgPATH;/ -type f -iname "&name;*-x86_64-1.txz" ! -iname "*&version;*" -delete
-find &plgPATH;/ -type f -iname "&name;*.md5" ! -iname "*&version;*" -delete
-
 echo ""
-echo "-----------------------------------------------------------"
+echo "----------------------------------------------------"
 echo " &name; has been installed."
 echo " Version: &version;"
-echo " Access via: Settings > Custom SMB Shares"
-echo "-----------------------------------------------------------"
+echo " Access via: Settings > SMB Shares"
+echo "----------------------------------------------------"
 echo ""
 </INLINE>
 </FILE>
@@ -109,24 +85,21 @@ echo ""
 <!-- Remove script -->
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
-#!/bin/bash
-
 echo "Removing &name;..."
 
-# Remove plugin files
-removepkg &name;-&version;-x86_64-1 2>/dev/null || true
+# Remove plugin package
+removepkg &name;-&version;-x86_64-1
+
+# Remove runtime files
 rm -rf &plugdir;
 
 # Note: Configuration files in &plgPATH; are preserved
-# To completely remove including config:
-# rm -rf &plgPATH;
-
 echo ""
-echo "-----------------------------------------------------------"
+echo "----------------------------------------------------"
 echo " &name; has been removed."
-echo " Configuration files preserved in &plgPATH;"
+echo " Configuration preserved in &plgPATH;"
 echo " To remove config: rm -rf &plgPATH;"
-echo "-----------------------------------------------------------"
+echo "----------------------------------------------------"
 echo ""
 </INLINE>
 </FILE>
