@@ -5,6 +5,7 @@ Tag="cog"
 $configFile = '/boot/config/plugins/custom.smb.shares/settings.cfg';
 $defaults = [
     'SERVICE' => 'enabled',
+    'BACKUP_COUNT' => '10',
 ];
 
 // Load settings
@@ -19,6 +20,7 @@ if (file_exists($configFile)) {
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $settings['SERVICE'] = $_POST['SERVICE'] ?? 'enabled';
+    $settings['BACKUP_COUNT'] = max(1, min(50, (int)($_POST['BACKUP_COUNT'] ?? 10)));
     
     // Save settings
     $content = "";
@@ -41,13 +43,134 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $enabled = $settings['SERVICE'] === 'enabled';
+$backupCount = $settings['BACKUP_COUNT'];
 ?>
+
+<style>
+.backup-table { width: 100%; margin-top: 10px; }
+.backup-table th { text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color); }
+.backup-table td { padding: 8px; border-bottom: 1px solid var(--border-color); }
+.backup-actions a { margin-right: 10px; cursor: pointer; }
+#backupModal textarea { width: 100%; height: 300px; font-family: monospace; font-size: 12px; }
+</style>
 
 <script>
 function applySettings() {
     $('#applyBtn').val('_(Applying...)_').prop('disabled', true);
     $('form').submit();
 }
+
+function loadBackups() {
+    $.get('/plugins/custom.smb.shares/api.php?action=listBackups', function(response) {
+        if (response.success) {
+            var html = '';
+            if (response.backups.length === 0) {
+                html = '<tr><td colspan="4">_(No backups found)_</td></tr>';
+            } else {
+                response.backups.forEach(function(b) {
+                    html += '<tr>';
+                    html += '<td>' + b.filename + '</td>';
+                    html += '<td>' + b.date + '</td>';
+                    html += '<td>' + b.shares + ' _(shares)_</td>';
+                    html += '<td class="backup-actions">';
+                    html += '<a href="#" class="backup-view" data-filename="' + b.filename + '"><i class="fa fa-eye"></i> _(View)_</a>';
+                    html += '<a href="#" class="backup-restore" data-filename="' + b.filename + '"><i class="fa fa-undo"></i> _(Restore)_</a>';
+                    html += '<a href="#" class="backup-delete" data-filename="' + b.filename + '"><i class="fa fa-trash"></i> _(Delete)_</a>';
+                    html += '</td>';
+                    html += '</tr>';
+                });
+            }
+            $('#backupList').html(html);
+        }
+    }, 'json');
+}
+
+function viewBackup(filename) {
+    $.get('/plugins/custom.smb.shares/api.php?action=viewBackup&filename=' + encodeURIComponent(filename), function(response) {
+        if (response.success) {
+            swal({
+                title: filename,
+                text: '<textarea readonly>' + JSON.stringify(response.config, null, 2) + '</textarea>',
+                html: true,
+                confirmButtonText: '_(Close)_'
+            });
+        } else {
+            swal('_(Error)_', response.error, 'error');
+        }
+    }, 'json');
+}
+
+function restoreBackup(filename) {
+    swal({
+        title: '_(Restore Backup)_?',
+        text: '_(This will replace your current configuration with)_ ' + filename + '. _(A backup of current config will be created first.)_',
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '_(Restore)_',
+        cancelButtonText: '_(Cancel)_'
+    }, function(confirmed) {
+        if (confirmed) {
+            $.post('/plugins/custom.smb.shares/api.php', { action: 'restoreBackup', filename: filename }, function(response) {
+                if (response.success) {
+                    swal('_(Success)_', '_(Backup restored. Reload the shares page to see changes.)_', 'success');
+                    loadBackups();
+                } else {
+                    swal('_(Error)_', response.error, 'error');
+                }
+            }, 'json');
+        }
+    });
+}
+
+function deleteBackup(filename) {
+    swal({
+        title: '_(Delete Backup)_?',
+        text: '_(Are you sure you want to delete)_ ' + filename + '?',
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '_(Delete)_',
+        cancelButtonText: '_(Cancel)_'
+    }, function(confirmed) {
+        if (confirmed) {
+            $.post('/plugins/custom.smb.shares/api.php', { action: 'deleteBackup', filename: filename }, function(response) {
+                if (response.success) {
+                    loadBackups();
+                } else {
+                    swal('_(Error)_', response.error, 'error');
+                }
+            }, 'json');
+        }
+    });
+}
+
+function createBackup() {
+    $.post('/plugins/custom.smb.shares/api.php', { action: 'createBackup' }, function(response) {
+        if (response.success) {
+            swal('_(Success)_', '_(Backup created successfully)_', 'success');
+            loadBackups();
+        } else {
+            swal('_(Error)_', response.error || '_(Failed to create backup)_', 'error');
+        }
+    }, 'json');
+}
+
+$(function() {
+    loadBackups();
+    
+    // Event delegation for dynamically created backup action links
+    $(document).on('click', '.backup-view', function(e) {
+        e.preventDefault();
+        viewBackup($(this).data('filename'));
+    });
+    $(document).on('click', '.backup-restore', function(e) {
+        e.preventDefault();
+        restoreBackup($(this).data('filename'));
+    });
+    $(document).on('click', '.backup-delete', function(e) {
+        e.preventDefault();
+        deleteBackup($(this).data('filename'));
+    });
+});
 </script>
 
 <form method="POST">
@@ -63,6 +186,16 @@ function applySettings() {
 </dl>
 <blockquote class="inline_help">
     <p>_(When disabled, the plugin will not inject any configuration into Samba. Your share definitions are preserved and will be restored when re-enabled.)_</p>
+</blockquote>
+
+<dl>
+    <dt>_(Backups to Keep)_:</dt>
+    <dd>
+        <input type="number" name="BACKUP_COUNT" value="<?=$backupCount?>" min="1" max="50" class="narrow">
+    </dd>
+</dl>
+<blockquote class="inline_help">
+    <p>_(Number of automatic backups to retain. Backups are created before each import operation. Oldest backups are automatically deleted when this limit is exceeded.)_</p>
 </blockquote>
 
 <dl>
@@ -83,3 +216,23 @@ function applySettings() {
     _(Plugin is currently disabled. Custom SMB shares are not being applied to Samba configuration.)_
 </div>
 <?php endif; ?>
+
+<div style="margin-top:30px;">
+    <h2>_(Backup Management)_</h2>
+    <p>_(Backups are created automatically before import, edit, and delete operations. You can also create manual backups.)_</p>
+    <p style="margin-bottom:15px;"><input type="button" value="_(Create Backup Now)_" onclick="createBackup()"></p>
+    
+    <table class="backup-table tablesorter">
+        <thead>
+            <tr>
+                <th>_(Filename)_</th>
+                <th>_(Date)_</th>
+                <th>_(Shares)_</th>
+                <th>_(Actions)_</th>
+            </tr>
+        </thead>
+        <tbody id="backupList">
+            <tr><td colspan="4">_(Loading...)_</td></tr>
+        </tbody>
+    </table>
+</div>

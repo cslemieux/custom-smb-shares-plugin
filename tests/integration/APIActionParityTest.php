@@ -204,4 +204,31 @@ class APIActionParityTest extends TestCase
             "Import should have file upload functionality"
         );
     }
+    
+    /**
+     * Test that dynamically generated HTML does NOT use inline onclick
+     * 
+     * Bug: onclick='func()' in dynamically inserted HTML can't find functions.
+     * Fix: Use event delegation with $(document).on('click', '.class', ...)
+     */
+    public function testNoDynamicInlineOnclick(): void
+    {
+        $pageFiles = glob(self::$pluginDir . '/*.page');
+        
+        foreach ($pageFiles as $file) {
+            $content = file_get_contents($file);
+            $basename = basename($file);
+            
+            // Find patterns where HTML is built with += and contains onclick
+            // This catches: html += '<a onclick="func()">'
+            if (preg_match('/html\s*\+?=.*onclick\s*=/', $content)) {
+                $this->fail(
+                    "$basename: Found inline onclick in dynamically generated HTML. " .
+                    "Use event delegation instead: \$(document).on('click', '.class', handler)"
+                );
+            }
+        }
+        
+        $this->assertTrue(true, "No inline onclick in dynamic HTML");
+    }
 }

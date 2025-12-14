@@ -165,5 +165,80 @@ if ($action === 'reloadSamba') {
     exit;
 }
 
+if ($action === 'createBackup') {
+    require_once __DIR__ . '/include/lib.php';
+    $result = backupShares();
+    if ($result) {
+        echo json_encode(['success' => true, 'message' => 'Backup created', 'filename' => basename($result)]);
+    } else {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Failed to create backup']);
+    }
+    exit;
+}
+
+if ($action === 'listBackups') {
+    require_once __DIR__ . '/include/lib.php';
+    $backups = listBackups();
+    echo json_encode(['success' => true, 'backups' => $backups]);
+    exit;
+}
+
+if ($action === 'viewBackup') {
+    require_once __DIR__ . '/include/lib.php';
+    $filename = $_GET['filename'] ?? $_POST['filename'] ?? '';
+    if (empty($filename) || !preg_match('/^shares_[\d-_]+\.json$/', $filename)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
+        exit;
+    }
+    $content = viewBackup($filename);
+    if ($content === false) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'Backup not found']);
+        exit;
+    }
+    echo json_encode(['success' => true, 'config' => $content]);
+    exit;
+}
+
+if ($action === 'restoreBackup') {
+    require_once __DIR__ . '/include/lib.php';
+    $filename = $_GET['filename'] ?? $_POST['filename'] ?? '';
+    if (empty($filename) || !preg_match('/^shares_[\d-_]+\.json$/', $filename)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
+        exit;
+    }
+    // Backup current before restore
+    backupShares();
+    $result = restoreBackup($filename);
+    if ($result) {
+        echo json_encode(['success' => true, 'message' => 'Backup restored successfully']);
+    } else {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Failed to restore backup']);
+    }
+    exit;
+}
+
+if ($action === 'deleteBackup') {
+    require_once __DIR__ . '/include/lib.php';
+    $filename = $_GET['filename'] ?? $_POST['filename'] ?? '';
+    if (empty($filename) || !preg_match('/^shares_[\d-_]+\.json$/', $filename)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
+        exit;
+    }
+    $result = deleteBackup($filename);
+    if ($result) {
+        echo json_encode(['success' => true, 'message' => 'Backup deleted']);
+    } else {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Failed to delete backup']);
+    }
+    exit;
+}
+
 http_response_code(400);
 echo json_encode(['error' => 'Invalid action']);

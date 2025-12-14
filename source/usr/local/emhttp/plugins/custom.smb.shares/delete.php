@@ -42,6 +42,9 @@ try {
         exit;
     }
 
+    // Backup before making changes
+    backupShares();
+
     $shares = array_values($shares);
     saveShares($shares);
 

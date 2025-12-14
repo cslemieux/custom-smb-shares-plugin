@@ -64,6 +64,10 @@ try {
         echo json_encode(['success' => false, 'error' => 'Share not found']);
         exit;
     }
+    
+    // Backup before making changes
+    backupShares();
+    
     saveShares($shares);
 
     $config = generateSambaConfig($shares);
