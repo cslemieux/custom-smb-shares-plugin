@@ -34,7 +34,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 PLUGIN_NAME="custom.smb.shares"
-VERSION=$(date +"%Y.%m.%d")
+BASE_VERSION=$(date +"%Y.%m.%d")
 BUILD_DIR="build"
 ARCHIVE_DIR="archive"
 COVERAGE_DIR="coverage"
@@ -58,8 +58,26 @@ for arg in "$@"; do
     esac
 done
 
-# Apply version suffix if provided
-VERSION="${VERSION}${VERSION_SUFFIX}"
+# Auto-increment point release if version already exists
+VERSION="${BASE_VERSION}${VERSION_SUFFIX}"
+if [ -z "$VERSION_SUFFIX" ]; then
+    # Check for existing packages with same date
+    EXISTING=$(ls -1 ${ARCHIVE_DIR}/${PLUGIN_NAME}-${BASE_VERSION}*.txz 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$EXISTING" -gt 0 ]; then
+        # Find highest point release
+        HIGHEST=$(ls -1 ${ARCHIVE_DIR}/${PLUGIN_NAME}-${BASE_VERSION}*.txz 2>/dev/null | \
+            sed -E "s/.*${BASE_VERSION}([a-z])?-.*/\1/" | \
+            sort | tail -1)
+        if [ -z "$HIGHEST" ]; then
+            VERSION="${BASE_VERSION}a"
+        else
+            # Increment letter (a->b, b->c, etc.)
+            NEXT=$(echo "$HIGHEST" | tr 'a-y' 'b-z')
+            VERSION="${BASE_VERSION}${NEXT}"
+        fi
+        echo "Note: Version ${BASE_VERSION} exists, auto-incrementing to ${VERSION}"
+    fi
+fi
 
 # Functions
 log_info() {

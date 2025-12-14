@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2025.12.14">
+<!ENTITY version   "2025.12.14a">
 <!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "331802e4becd8fe781a466864da9292a">
+<!ENTITY md5       "98d3ec1e500d54bfda682b9480725f3d">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -24,7 +24,7 @@
 <CHANGES>
 ##&name;
 
-###2025.12.14
+###2025.12.14a
 - Initial release v1.0.0
 - Full share CRUD operations (Create, Read, Update, Delete)
 - Enable/disable toggle with loading states
