@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#4a90d9"/>
+  
+  <!-- Folder base -->
+  <path d="M100 180 L100 380 L412 380 L412 180 L260 180 L230 140 L100 140 Z" 
+        fill="#f5a623" stroke="#e09000" stroke-width="4"/>
+  
+  <!-- Folder front -->
+  <path d="M100 200 L100 380 L412 380 L412 200 Z" 
+        fill="#f7b84e"/>
+  
+  <!-- Network/Share symbol - three connected nodes -->
+  <g fill="#ffffff" stroke="#4a90d9" stroke-width="3">
+    <!-- Center node -->
+    <circle cx="256" cy="280" r="28"/>
+    <!-- Top-right node -->
+    <circle cx="340" cy="220" r="22"/>
+    <!-- Bottom-right node -->
+    <circle cx="340" cy="340" r="22"/>
+    <!-- Top-left node -->
+    <circle cx="172" cy="220" r="22"/>
+    <!-- Bottom-left node -->
+    <circle cx="172" cy="340" r="22"/>
+  </g>
+  
+  <!-- Connection lines -->
+  <g stroke="#ffffff" stroke-width="6" stroke-linecap="round">
+    <line x1="280" y1="265" x2="320" y2="235"/>
+    <line x1="280" y1="295" x2="320" y2="325"/>
+    <line x1="232" y1="265" x2="192" y2="235"/>
+    <line x1="232" y1="295" x2="192" y2="325"/>
+  </g>
+  
+  <!-- Inner dots for nodes -->
+  <g fill="#4a90d9">
+    <circle cx="256" cy="280" r="12"/>
+    <circle cx="340" cy="220" r="9"/>
+    <circle cx="340" cy="340" r="9"/>
+    <circle cx="172" cy="220" r="9"/>
+    <circle cx="172" cy="340" r="9"/>
+  </g>
+</svg>
