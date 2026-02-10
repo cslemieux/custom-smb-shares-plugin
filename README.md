@@ -199,6 +199,10 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.02.10
+- Add File Browser link to share list (requested by Frank1940)
+- Click the browse icon next to any share path to open Unraid's built-in File Browser
+
 ### v2026.01.20
 - Force user/group fields changed from text inputs to dropdowns
 - Only valid system users/groups are selectable (prevents config errors)

@@ -113,7 +113,10 @@ $sambaRunning = $sambaStatus['running'];
         <span class="exec" style="margin-right:8px;"><i class="fa fa-folder orange-text"></i></span>
         <span class="exec"><?= htmlspecialchars($share['name']) ?></span>
     </td>
-    <td><?= htmlspecialchars($share['path']) ?></td>
+    <td>
+        <a class="view" href="/SMBShares/Browse?dir=<?= htmlspecialchars($share['path']) ?>"><i class="icon-u-tab" title="<?= _('Browse') ?> <?= htmlspecialchars($share['path']) ?>"></i></a>
+        <?= htmlspecialchars($share['path']) ?>
+    </td>
     <td><?= htmlspecialchars($share['comment'] ?? '') ?></td>
     <td class="feature-icons">
         <?php if ($fruit || $isTimeMachine): ?>

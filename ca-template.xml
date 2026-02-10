@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Containers>
+  <PluginURL>https://raw.githubusercontent.com/cslemieux/unraid-custom-smb-shares/main/custom.smb.shares.plg</PluginURL>
+  <PluginAuthor>cslemieux</PluginAuthor>
+  <Beta>False</Beta>
+  <Category>Network Services: Tools:System</Category>
+  <Name>Custom SMB Shares</Name>
+  <Description>
+Create and manage custom Samba/SMB shares independently from Unraid's built-in share system. Perfect for advanced users who need fine-grained control over SMB share configurations including custom permissions, macOS/Time Machine support, host restrictions, and more.
+
+Features:
+- Create shares pointing to any path under /mnt/
+- Full permission control (create/directory masks, force user/group)
+- macOS optimization with Fruit VFS and Time Machine support
+- Host allow/deny lists for access control
+- Security modes (Public, Secure, Private)
+- Enable/disable shares without deletion
+- Import/Export configurations
+- Automatic backup with retention
+  </Description>
+  <Overview>
+Create and manage custom Samba/SMB shares with advanced configuration options not available in Unraid's built-in share system.
+  </Overview>
+  <Support>https://forums.unraid.net/topic/195826-plugin-custom-smb-shares/</Support>
+  <Project>https://github.com/cslemieux/unraid-custom-smb-shares</Project>
+  <Icon>https://raw.githubusercontent.com/cslemieux/unraid-custom-smb-shares/main/icons/custom-smb-shares.png</Icon>
+  <IconFA>share-alt</IconFA>
+  <MinVer>6.12.0</MinVer>
+</Containers>

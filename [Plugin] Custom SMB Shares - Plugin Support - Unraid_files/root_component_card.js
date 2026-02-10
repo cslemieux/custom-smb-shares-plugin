@@ -1,0 +1,14 @@
+;(function(){"use strict";class iCard extends HTMLElement{connectedCallback(){this.supportsPopover=CSS.supports("selector(:popover-open)");this.supportsAnimationTimeline=CSS.supports("(animation-timeline: scroll())");this.isOffCanvas=this.matches('.ipsOffCanvas');this.addEventListener("beforetoggle",this);this.addEventListener("toggle",this);this.swipeObserver=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){this.setAttribute("hidden-via-swipe",true);if(!this.supportsAnimationTimeline){this.style.removeProperty('--i-card--backdrop-scroll');}
+this.hidePopover();}},{root:this,threshold:.1});}
+handleEvent(e){return this[`${e.type}Event`]&&this[`${e.type}Event`](e);}
+beforetoggleEvent(e){if(e.newState==="open"){this.removeAttribute("hidden-via-swipe");if(this.hasAttribute("data-i-card-append")){const appendMenuTo=this.getAttribute("data-i-card-append")||"body";document.querySelector(appendMenuTo).append(this);}
+if(!this.swipeElement){this.createSwipeElement();}}}
+toggleEvent(e){if(e.newState==="open"){this.snapElement.scrollIntoView({block:"end",inline:"end",behavior:"instant"});this.swipeObserver.observe(this.swipeElement);if(!this.supportsAnimationTimeline){requestAnimationFrame(()=>{this.addEventListener("scroll",this,{passive:true});});}
+this.dispatchEvent(new CustomEvent('ipsCardOpened',{detail:{card:this},bubbles:true}));}else{this.swipeObserver.disconnect();if(!this.supportsAnimationTimeline){this.removeEventListener("scroll",this);}
+this.dispatchEvent(new CustomEvent('ipsCardClosed',{detail:{card:this},bubbles:true}));}}
+scrollEvent(e){requestAnimationFrame(()=>{if(e.target===this){let scrollPercentage=(this.isOffCanvas)?Math.floor(this.scrollLeft/Math.max(1,this.scrollWidth-this.clientWidth)*100)+"%":Math.floor(this.scrollTop/Math.max(1,this.scrollHeight-this.clientHeight)*100)+"%";this.style.setProperty('--i-card--backdrop-scroll',scrollPercentage);}});}
+createSwipeElement(){let addBackdropElements=``;if(!this.querySelector(".iCardSwipe")){addBackdropElements+=`<div class='iCardSwipe'></div>`;}
+if(!this.querySelector(".iCardDismiss")){addBackdropElements+=`<button class="iCardDismiss" type="button" popovertarget="${this.id}" popovertargetaction="hide" aria-label="Close" tabindex="-1"></button>`;}
+if(!this.querySelector(".iCardSnap")){addBackdropElements+=`<div class="iCardSnap"></div>`;}
+this.insertAdjacentHTML("afterbegin",addBackdropElements);this.swipeElement=this.querySelector(".iCardSwipe");this.snapElement=this.querySelector(".iCardSnap");}}
+ips.ui.registerWebComponent("card",iCard);Debug.log(`Submitted the web component constructor, iCard, for ${"card"}`);})();;
