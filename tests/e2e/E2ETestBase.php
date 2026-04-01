@@ -117,6 +117,18 @@ abstract class E2ETestBase extends TestCase
     }
     
     /**
+     * Safe executeScript wrapper - auto-detects jQuery usage and waits if needed.
+     * Use this instead of $driver->executeScript() for any script that might use $().
+     */
+    protected function safeExecuteScript(string $script)
+    {
+        if (strpos($script, '$(') !== false || strpos($script, 'jQuery(') !== false) {
+            return $this->jQueryScript($script);
+        }
+        return $this->driver->executeScript($script);
+    }
+    
+    /**
      * Close all modals and overlays (no-op for page-based navigation)
      */
     protected function closeAllModals(): void

@@ -82,7 +82,7 @@ class ComprehensiveUITest extends E2ETestBase
         // Clear cookies and local storage between tests
         try {
             self::$sharedDriver->manage()->deleteAllCookies();
-            self::$sharedDriver->executeScript('window.localStorage.clear(); window.sessionStorage.clear();');
+            $this->safeExecuteScript('window.localStorage.clear(); window.sessionStorage.clear();');
         } catch (Exception $e) {
             // Ignore
         }
@@ -112,7 +112,7 @@ class ComprehensiveUITest extends E2ETestBase
     
     private function assertNoJSErrors()
     {
-        $errors = self::$sharedDriver->executeScript('return window.jsErrors || [];');
+        $errors = $this->safeExecuteScript('return window.jsErrors || [];');
         $this->assertEmpty($errors, 'No JavaScript errors should occur');
     }
     
@@ -198,7 +198,7 @@ class ComprehensiveUITest extends E2ETestBase
     {
         self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
         
-        $csrfToken = self::$sharedDriver->executeScript('return typeof csrf_token !== "undefined" ? csrf_token : null;');
+        $csrfToken = $this->safeExecuteScript('return typeof csrf_token !== "undefined" ? csrf_token : null;');
         
         $this->assertNotNull($csrfToken, 'CSRF token should be defined');
         $this->assertNotEmpty($csrfToken, 'CSRF token should not be empty');
@@ -267,13 +267,13 @@ class ComprehensiveUITest extends E2ETestBase
     private function waitForPageReload($timeoutSeconds = 5)
     {
         // Set a flag before reload
-        self::$sharedDriver->executeScript('window.__reloadDetector = true;');
+        $this->safeExecuteScript('window.__reloadDetector = true;');
         
         // Wait for flag to disappear (page reloaded)
         $startTime = time();
         while (time() - $startTime < $timeoutSeconds) {
             try {
-                $flagExists = self::$sharedDriver->executeScript('return typeof window.__reloadDetector !== "undefined";');
+                $flagExists = $this->safeExecuteScript('return typeof window.__reloadDetector !== "undefined";');
                 if (!$flagExists) {
                     // Page reloaded, wait for document ready
                     self::$sharedDriver->wait(5)->until(
@@ -585,7 +585,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->assertTrue($nameField->isDisplayed(), 'Name field should be visible');
         
         // Verify advanced sections are hidden by default
-        $advancedVisible = self::$sharedDriver->executeScript(
+        $advancedVisible = $this->safeExecuteScript(
             'return $(".advanced:first").is(":visible");'
         );
         $this->assertFalse($advancedVisible, 'Advanced sections should be hidden by default');
@@ -604,13 +604,13 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('tabswitch-02-advanced-toggled-on');
         
         // Verify advanced sections are now visible
-        $advancedVisible = self::$sharedDriver->executeScript(
+        $advancedVisible = $this->safeExecuteScript(
             'return $(".advanced:first").is(":visible");'
         );
         $this->assertTrue($advancedVisible, 'Advanced sections should be visible after toggle');
         
         // Verify permission grid is visible in advanced section
-        $hasPermissionGrid = self::$sharedDriver->executeScript(
+        $hasPermissionGrid = $this->safeExecuteScript(
             'return $(".advanced .permission-grid").length > 0;'
         );
         $this->assertTrue($hasPermissionGrid, 'Advanced section should contain permission grid');
@@ -621,7 +621,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('tabswitch-03-advanced-toggled-off');
         
         // Verify advanced sections are hidden again
-        $advancedVisible = self::$sharedDriver->executeScript(
+        $advancedVisible = $this->safeExecuteScript(
             'return $(".advanced:first").is(":visible");'
         );
         $this->assertFalse($advancedVisible, 'Advanced sections should be hidden after toggle off');
@@ -672,7 +672,7 @@ class ComprehensiveUITest extends E2ETestBase
         // the headless browser limitation.
         
         // Directly invoke the AJAX call with share name using page's CSRF token
-        self::$sharedDriver->executeScript("
+        $this->safeExecuteScript("
             var token = document.querySelector('input[name=\"csrf_token\"]')?.value || 
                         (typeof csrf_token !== 'undefined' ? csrf_token : 'test-token-123');
             $.post('/plugins/custom.smb.shares/delete.php', { name: 'DeleteWorkflow', csrf_token: token }, function(response) {
@@ -757,7 +757,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->fillField('path', '/mnt/user/handlertest');
         
         // Submit via AJAX using the page's CSRF token
-        self::$sharedDriver->executeScript("
+        $this->safeExecuteScript("
             var token = document.querySelector('input[name=\"csrf_token\"]')?.value || 
                         (typeof csrf_token !== 'undefined' ? csrf_token : 'test-token-123');
             var formData = {
@@ -889,7 +889,7 @@ class ComprehensiveUITest extends E2ETestBase
             $name = $share[0];
             $path = $share[1];
             
-            self::$sharedDriver->executeScript("
+            $this->safeExecuteScript("
                 var token = document.querySelector('input[name=\"csrf_token\"]')?.value || 
                             (typeof csrf_token !== 'undefined' ? csrf_token : 'test-token-123');
                 $.post('/plugins/custom.smb.shares/add.php', {
@@ -956,7 +956,7 @@ class ComprehensiveUITest extends E2ETestBase
         self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
         sleep(1); // Ensure page is loaded
         
-        self::$sharedDriver->executeScript("
+        $this->safeExecuteScript("
             var token = document.querySelector('input[name=\"csrf_token\"]')?.value || 
                         (typeof csrf_token !== 'undefined' ? csrf_token : 'test-token-123');
             if (typeof $ !== 'undefined') {
@@ -1101,7 +1101,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('validation-valid-input');
         
         // Check validity
-        $isValid = self::$sharedDriver->executeScript(
+        $isValid = $this->safeExecuteScript(
             'return $("input[name=name]")[0].validity.valid;'
         );
         
@@ -1255,7 +1255,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('layout-full-page');
         
         // Check shares list is visible
-        $listRect = self::$sharedDriver->executeScript(
+        $listRect = $this->safeExecuteScript(
             "return document.querySelector('.custom-shares-table').getBoundingClientRect();"
         );
         
@@ -1263,7 +1263,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->assertGreaterThan(0, $listRect['height'], 'Shares list should have height');
         
         // Check page has proper layout
-        $bodyWidth = self::$sharedDriver->executeScript('return document.body.offsetWidth;');
+        $bodyWidth = $this->safeExecuteScript('return document.body.offsetWidth;');
         $this->assertGreaterThan(800, $bodyWidth, 'Page should have reasonable width');
     }
     
@@ -1354,7 +1354,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('invalid-data-validation-message');
         
         // Check validation message appears (HTML5 or custom JS)
-        $validationMessage = self::$sharedDriver->executeScript(
+        $validationMessage = $this->safeExecuteScript(
             'return $("input[name=name]")[0].validationMessage || $("#shareNameError").text();'
         );
         
@@ -1392,7 +1392,7 @@ class ComprehensiveUITest extends E2ETestBase
         self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
         
         // Check if deleteShare function is defined
-        $deleteFunctionExists = self::$sharedDriver->executeScript(
+        $deleteFunctionExists = $this->safeExecuteScript(
             'return typeof window.deleteShare === "function";'
         );
         
@@ -1451,12 +1451,12 @@ class ComprehensiveUITest extends E2ETestBase
         
         // Path field has pattern="/mnt/.*" so HTML5 validation should trigger,
         // or prepareForm() checks path.startsWith('/mnt/') and shows swal error
-        $isInvalid = self::$sharedDriver->executeScript(
+        $isInvalid = $this->safeExecuteScript(
             'var el = $("[name=\'path\']")[0]; return el && !el.validity.valid;'
         );
         
         // Also check if SweetAlert error appeared (prepareForm validation)
-        $swalVisible = self::$sharedDriver->executeScript(
+        $swalVisible = $this->safeExecuteScript(
             'return $(".sweet-alert:visible").length > 0;'
         );
         
@@ -1478,13 +1478,13 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('mask-advanced-toggle');
         
         // Verify the advanced sections are now visible
-        $advancedVisible = self::$sharedDriver->executeScript(
+        $advancedVisible = $this->safeExecuteScript(
             'return $(".advanced:first").is(":visible");'
         );
         
         if ($advancedVisible) {
             // Verify permission grid is accessible
-            $hasPermissionGrid = self::$sharedDriver->executeScript(
+            $hasPermissionGrid = $this->safeExecuteScript(
                 'return $(".advanced .permission-grid").length > 0;'
             );
             $this->assertTrue($hasPermissionGrid, 'Advanced section should contain permission grid');
@@ -1502,7 +1502,7 @@ class ComprehensiveUITest extends E2ETestBase
         self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
         
         // Verify notification functions exist
-        $showSuccessExists = self::$sharedDriver->executeScript(
+        $showSuccessExists = $this->safeExecuteScript(
             'return typeof showSuccess === "function";'
         );
         $this->assertTrue($showSuccessExists, 'showSuccess function should exist');
@@ -1514,7 +1514,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('notification-success');
         
         // Verify notification appeared (either custom or swal)
-        $hasNotification = self::$sharedDriver->executeScript(
+        $hasNotification = $this->safeExecuteScript(
             'return $(".notification-success:visible").length > 0 || $(".swal-overlay:visible").length > 0 || $(".sweet-alert:visible").length > 0;'
         );
         $this->assertTrue($hasNotification, 'Success notification should be visible');
@@ -1525,7 +1525,7 @@ class ComprehensiveUITest extends E2ETestBase
         self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
         
         // Verify notification functions exist
-        $showErrorExists = self::$sharedDriver->executeScript(
+        $showErrorExists = $this->safeExecuteScript(
             'return typeof showError === "function";'
         );
         $this->assertTrue($showErrorExists, 'showError function should exist');
@@ -1537,7 +1537,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('notification-error');
         
         // Verify notification appeared (either custom or swal)
-        $hasNotification = self::$sharedDriver->executeScript(
+        $hasNotification = $this->safeExecuteScript(
             'return $(".notification-error:visible").length > 0 || $(".swal-overlay:visible").length > 0 || $(".sweet-alert:visible").length > 0;'
         );
         $this->assertTrue($hasNotification, 'Error notification should be visible');
@@ -1560,7 +1560,7 @@ class ComprehensiveUITest extends E2ETestBase
         
         // Verify notification is gone or can be dismissed
         // Note: SweetAlert may require clicking OK button
-        $stillVisible = self::$sharedDriver->executeScript(
+        $stillVisible = $this->safeExecuteScript(
             'return $(".notification-success:visible").length > 0;'
         );
         
