@@ -1,0 +1,27 @@
+{
+    "generated": "2026-04-01",
+    "dependencies": [
+        "jquery",
+        "jqueryui",
+        "filetree",
+        "switchbutton",
+        "tablesorter",
+        "sweetalert"
+    ],
+    "tags": {
+        "css": [
+            "<link rel=\"stylesheet\" href=\"/test-assets/jquery-ui.min.css\">",
+            "<link rel=\"stylesheet\" href=\"/test-assets/jquery.filetree.css\">",
+            "<link rel=\"stylesheet\" href=\"/test-assets/sweetalert.min.css\">",
+            "<link rel=\"stylesheet\" href=\"/test-assets/ui.switchbutton.css\">"
+        ],
+        "js": [
+            "<script src=\"/test-assets/jquery-3.6.0.min.js\"></script>",
+            "<script src=\"/test-assets/jquery-ui.min.js\"></script>",
+            "<script src=\"/test-assets/jquery.filetree.js\"></script>",
+            "<script src=\"/test-assets/jquery.switchbutton.js\"></script>",
+            "<script src=\"/test-assets/jquery.tablesorter.min.js\"></script>",
+            "<script src=\"/test-assets/sweetalert.min.js\"></script>"
+        ]
+    }
+}

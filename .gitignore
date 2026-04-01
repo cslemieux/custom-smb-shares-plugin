@@ -83,5 +83,5 @@ unraid-docs-official/
 # Screenshots (development only)
 screenshots/
 
-# Test harness dependencies
-tests/harness/dependencies.json
+# Test harness temp files
+cleanup-harness.sh
