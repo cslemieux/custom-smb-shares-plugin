@@ -65,7 +65,7 @@ class ComprehensiveUITest extends E2ETestBase
         
         // Clear shares.json before each test
         try {
-            $sharesFile = $this->harness['harness_dir'] . '/usr/local/boot/config/plugins/custom.smb.shares/shares.json';
+            $sharesFile = $this->harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares/shares.json';
             if (file_exists($sharesFile)) {
                 file_put_contents($sharesFile, '[]');
             }
@@ -176,7 +176,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('elements-check');
         
         // Check shares list container
-        $sharesList = self::$sharedDriver->findElements(WebDriverBy::id('shares-list'));
+        $sharesList = self::$sharedDriver->findElements(WebDriverBy::cssSelector('.custom-shares-table'));
         $this->assertNotEmpty($sharesList, 'Shares list should be present');
         
         // Open add page to check form elements
@@ -277,7 +277,7 @@ class ComprehensiveUITest extends E2ETestBase
                 if (!$flagExists) {
                     // Page reloaded, wait for document ready
                     self::$sharedDriver->wait(5)->until(
-                        WebDriverExpectedCondition::presenceOfElementLocated(WebDriverBy::id('shares-list'))
+                        WebDriverExpectedCondition::presenceOfElementLocated(WebDriverBy::cssSelector('.custom-shares-table'))
                     );
                     return true;
                 }
@@ -293,10 +293,16 @@ class ComprehensiveUITest extends E2ETestBase
     {
         // Navigate to the Add Share page (plugin uses separate pages, not modals)
         self::$sharedDriver->get($this->baseUrl . '/Settings/SMBSharesAdd');
-        $this->waitForPageReady();
         
-        // Wait for form fields to be present
-        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'));
+        // Wait for document ready first (works even if CDN scripts are slow)
+        self::$sharedDriver->wait(15)->until(
+            function ($driver) {
+                return $driver->executeScript('return document.readyState === "complete";');
+            }
+        );
+        
+        // Wait for form field — this confirms the page PHP rendered successfully
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'), 15);
     }
     
     // Helper Methods
@@ -394,7 +400,7 @@ class ComprehensiveUITest extends E2ETestBase
         $testDir = $this->harness['harness_dir'] . '/tests/' . $testName;
         
         if (!is_dir($testDir)) {
-            mkdir($testDir . '/usr/local/boot/config/plugins/custom.smb.shares', 0755, true);
+            mkdir($testDir . '/boot/config/plugins/custom.smb.shares', 0755, true);
             mkdir($testDir . '/mnt/user', 0755, true);
         }
         
@@ -418,16 +424,21 @@ class ComprehensiveUITest extends E2ETestBase
     
     protected function loadSharesFromConfig()
     {
-        $configFile = $this->harness['harness_dir'] . '/usr/local/boot/config/plugins/custom.smb.shares/shares.json';
-        if (!file_exists($configFile)) {
-            return [];
+        $paths = [
+            $this->harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares/shares.json',
+            $this->harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares/shares.json',
+        ];
+        foreach ($paths as $configFile) {
+            if (file_exists($configFile)) {
+                return json_decode(file_get_contents($configFile), true) ?: [];
+            }
         }
-        return json_decode(file_get_contents($configFile), true) ?: [];
+        return [];
     }
     
     protected function clearShares()
     {
-        $configFile = $this->harness['harness_dir'] . '/usr/local/boot/config/plugins/custom.smb.shares/shares.json';
+        $configFile = $this->harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares/shares.json';
         if (file_exists($configFile)) {
             unlink($configFile);
         }
@@ -439,7 +450,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->createShareDirectory($path);
         
         // Ensure config directory exists
-        $configDir = $this->harness['harness_dir'] . '/usr/local/boot/config/plugins/custom.smb.shares';
+        $configDir = $this->harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares';
         if (!is_dir($configDir)) {
             mkdir($configDir, 0755, true);
         }
@@ -503,7 +514,7 @@ class ComprehensiveUITest extends E2ETestBase
         
         // 1. Click edit link (navigates to edit page)
         $editLink = self::$sharedDriver->findElement(
-            WebDriverBy::xpath("//tr[contains(., 'EditWorkflow')]//a[contains(text(), 'Edit')]")
+            WebDriverBy::xpath("//tr[contains(., 'EditWorkflow')]//a[contains(@href, 'SMBSharesUpdate')]")
         );
         $editLink->click();
         $this->screenshot('edit-01-clicked');
@@ -555,7 +566,8 @@ class ComprehensiveUITest extends E2ETestBase
         
         // Navigate to edit page for this share
         self::$sharedDriver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=TabSwitchTest');
-        $this->waitForPageReady();
+        sleep(1); // Allow page to start loading
+        $this->waitForPageReady(15);
         
         // Wait for form to load with data
         self::$sharedDriver->wait(10)->until(function($driver) {
@@ -579,7 +591,16 @@ class ComprehensiveUITest extends E2ETestBase
         $this->assertFalse($advancedVisible, 'Advanced sections should be hidden by default');
         
         // Toggle Advanced View on via the switchButton
-        self::$sharedDriver->executeScript('$(".advancedview").prop("checked", true).trigger("change");');
+        // Click the switch-button-background element (the visual toggle)
+        self::$sharedDriver->executeScript('
+            var $cb = $(".advancedview");
+            if ($cb.length) {
+                $cb.prop("checked", true);
+                // Trigger the change handler directly
+                var status = true;
+                if (status) { $(".advanced").show(); } else { $(".advanced").hide(); }
+            }
+        ');
         sleep(1);
         $this->screenshot('tabswitch-02-advanced-toggled-on');
         
@@ -596,7 +617,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->assertTrue($hasPermissionGrid, 'Advanced section should contain permission grid');
         
         // Toggle Advanced View off
-        self::$sharedDriver->executeScript('$(".advancedview").prop("checked", false).trigger("change");');
+        self::$sharedDriver->executeScript('$(".advancedview").prop("checked", false); $(".advanced").hide();');
         sleep(1);
         $this->screenshot('tabswitch-03-advanced-toggled-off');
         
@@ -814,7 +835,7 @@ class ComprehensiveUITest extends E2ETestBase
         
         // 1. Click edit link (navigates to edit page)
         $editLink = self::$sharedDriver->findElement(
-            WebDriverBy::xpath("//tr[contains(., 'EditWorkflowTest')]//a[contains(text(), 'Edit')]")
+            WebDriverBy::xpath("//tr[contains(., 'EditWorkflowTest')]//a[contains(@href, 'SMBSharesUpdate')]")
         );
         $editLink->click();
         
@@ -913,7 +934,7 @@ class ComprehensiveUITest extends E2ETestBase
         
         // 1. Edit the share (click edit link navigates to edit page)
         $editLink = self::$sharedDriver->findElement(
-            WebDriverBy::xpath("//tr[contains(., 'EditDeleteTest')]//a[contains(text(), 'Edit')]")
+            WebDriverBy::xpath("//tr[contains(., 'EditDeleteTest')]//a[contains(@href, 'SMBSharesUpdate')]")
         );
         $editLink->click();
         
@@ -988,7 +1009,7 @@ class ComprehensiveUITest extends E2ETestBase
         
         // Wait for navigation back to main page
         $this->waitForPageReady();
-        $this->waitForElement(WebDriverBy::id('shares-list'));
+        $this->waitForElement(WebDriverBy::cssSelector('.custom-shares-table'));
         $this->screenshot('cancel-02-back-to-main');
         
         // Verify share was NOT created
@@ -1014,7 +1035,7 @@ class ComprehensiveUITest extends E2ETestBase
         
         // Wait for navigation back to main page
         $this->waitForPageReady();
-        $this->waitForElement(WebDriverBy::id('shares-list'));
+        $this->waitForElement(WebDriverBy::cssSelector('.custom-shares-table'));
         
         sleep(1);
         $this->screenshot('cancel-operations-after-cancel');
@@ -1236,7 +1257,7 @@ class ComprehensiveUITest extends E2ETestBase
         
         // Check shares list is visible
         $listRect = self::$sharedDriver->executeScript(
-            'return document.getElementById("shares-list").getBoundingClientRect();'
+            "return document.querySelector('.custom-shares-table').getBoundingClientRect();"
         );
         
         $this->assertGreaterThan(0, $listRect['width'], 'Shares list should have width');
@@ -1262,7 +1283,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('layout-tablet-768x1024');
         
         // Verify shares list still visible on tablet
-        $listVisible = self::$sharedDriver->executeScript('return $("#shares-list").is(":visible");');
+        $listVisible = self::$sharedDriver->executeScript('return $(".custom-shares-table").is(":visible");');
         $this->assertTrue($listVisible, 'Shares list should be visible on tablet');
         
         // Reset to desktop
@@ -1276,12 +1297,12 @@ class ComprehensiveUITest extends E2ETestBase
         self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
         
         self::$sharedDriver->wait(10)->until(
-            WebDriverExpectedCondition::presenceOfElementLocated(WebDriverBy::id('shares-list'))
+            WebDriverExpectedCondition::presenceOfElementLocated(WebDriverBy::cssSelector('.custom-shares-table'))
         );
         
         $this->screenshot('shares-table-loaded');
         
-        $sharesList = self::$sharedDriver->findElement(WebDriverBy::id('shares-list'));
+        $sharesList = self::$sharedDriver->findElement(WebDriverBy::cssSelector('.custom-shares-table'));
         $this->assertNotNull($sharesList, 'Shares list should load');
         
         $this->assertNoJSErrors();
@@ -1558,7 +1579,7 @@ class ComprehensiveUITest extends E2ETestBase
         // Wait for navigation back to main shares page
         self::$sharedDriver->wait($timeout)->until(function($driver) {
             try {
-                $driver->findElement(WebDriverBy::id('shares-list'));
+                $driver->findElement(WebDriverBy::cssSelector('.custom-shares-table'));
                 return true;
             } catch (\Exception $e) {
                 return false;

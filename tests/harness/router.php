@@ -13,14 +13,16 @@ require_once __DIR__ . '/UnraidJavaScript.php';
 
 // Set CONFIG_BASE globally for all requests
 // DOCUMENT_ROOT is harness_dir/usr/local/emhttp
-// CONFIG_BASE should be harness_dir/boot/config
-// So we need to go up 3 levels from DOCUMENT_ROOT
+// CONFIG_BASE should be harness_dir/boot/config (matches UnraidTestHarness structure)
 if (!defined('CONFIG_BASE')) {
-    // Go from usr/local/emhttp up to harness root, then into boot/config
     $harnessRoot = dirname($_SERVER['DOCUMENT_ROOT'], 3);
     $configPath = $harnessRoot . '/boot/config';
     define('CONFIG_BASE', $configPath);
     error_log("Router: CONFIG_BASE set to: $configPath");
+    // Ensure smb-extra.conf exists for Samba include operations
+    if (!file_exists($configPath . '/smb-extra.conf')) {
+        @touch($configPath . '/smb-extra.conf');
+    }
 }
 
 // Add harness bin directories to PATH for Samba mock scripts

@@ -61,34 +61,42 @@ abstract class E2ETestBase extends TestCase
     
     /**
      * Wait for page to be fully loaded and ready
+     * 
+     * Uses a resilient strategy: first waits for document.readyState (always fast),
+     * then optionally waits for jQuery (CDN may be slow — uses longer timeout and
+     * falls through gracefully if jQuery never loads).
      */
-    protected function waitForPageReady(int $timeout = 10): void
+    protected function waitForPageReady(int $timeout = 15): void
     {
-        // Wait for jQuery to be loaded
-        $this->driver->wait($timeout)->until(
-            function ($driver) {
-                return $driver->executeScript('return typeof jQuery !== "undefined";');
-            }
-        );
-        
-        // Wait for document ready
+        // Step 1: Wait for document ready state — this works even without CDN scripts
         $this->driver->wait($timeout)->until(
             function ($driver) {
                 return $driver->executeScript('return document.readyState === "complete";');
             }
         );
         
-        // Wait for jQuery ready
-        $this->driver->wait($timeout)->until(
-            function ($driver) {
-                return $driver->executeScript('return jQuery.isReady;');
+        // Step 2: Try to wait for jQuery — CDN scripts can be slow, use a generous
+        // per-poll approach rather than a hard wait() that throws on timeout
+        $jqueryMaxWaitMs = $timeout * 1000;
+        $jqueryPollMs = 200;
+        $elapsed = 0;
+        while ($elapsed < $jqueryMaxWaitMs) {
+            $jqueryLoaded = $this->driver->executeScript(
+                'return typeof jQuery !== "undefined" && jQuery.isReady;'
+            );
+            if ($jqueryLoaded) {
+                break;
             }
-        );
+            usleep($jqueryPollMs * 1000);
+            $elapsed += $jqueryPollMs;
+        }
         
-        // Wait for any pending AJAX
-        $this->driver->wait($timeout)->until(
+        // Step 3: Wait for any pending AJAX (gracefully if jQuery not available)
+        $this->driver->wait(5)->until(
             function ($driver) {
-                return $driver->executeScript('return jQuery.active === 0;');
+                return $driver->executeScript(
+                    'try { return typeof jQuery === "undefined" || jQuery.active === 0; } catch(e) { return true; }'
+                );
             }
         );
         

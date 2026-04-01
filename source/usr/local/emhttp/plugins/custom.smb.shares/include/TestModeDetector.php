@@ -72,9 +72,29 @@ class TestModeDetector
             return '';
         }
 
-        // CONFIG_BASE: /tmp/xxx/usr/local/boot/config or /private/tmp/xxx/usr/local/boot/config
-        // Go up 4 levels: config -> boot -> local -> usr -> harness root
-        self::$harnessRoot = dirname(dirname(dirname(dirname($configBase))));
+        // CONFIG_BASE can be either:
+        //   /tmp/xxx/boot/config (harness via router - 2 levels)
+        //   /tmp/xxx/usr/local/boot/config (integration tests via ChrootTestEnvironment - 4 levels)
+        // Detect by checking if /mnt/ exists at the expected harness root
+        $root4 = dirname(dirname(dirname(dirname($configBase))));
+        $root2 = dirname(dirname($configBase));
+        
+        if (is_dir($root2 . '/mnt')) {
+            self::$harnessRoot = $root2;
+        } elseif (is_dir($root4 . '/mnt')) {
+            self::$harnessRoot = $root4;
+        } else {
+            // Fallback: walk up until we find /mnt/
+            $candidate = dirname($configBase);
+            while ($candidate !== '/' && $candidate !== '') {
+                if (is_dir($candidate . '/mnt')) {
+                    self::$harnessRoot = $candidate;
+                    return self::$harnessRoot;
+                }
+                $candidate = dirname($candidate);
+            }
+            self::$harnessRoot = $root2; // best guess
+        }
         return self::$harnessRoot;
     }
 
@@ -161,14 +181,13 @@ class TestModeDetector
             return null;
         }
 
-        // Normalize macOS /private/tmp/ to /tmp/
         $configBase = str_replace('/private/tmp/', '/tmp/', CONFIG_BASE);
-        $harnessRoot = dirname(dirname(dirname(dirname($configBase))));
+        $harnessRoot = self::getHarnessRoot();
 
         return [
             'testparm' => $harnessRoot . '/usr/bin/testparm',
             'smbcontrol' => $harnessRoot . '/usr/bin/smbcontrol',
-            'configFile' => $configBase . '/plugins/custom.smb.shares/smb-extra.conf',
+            'configFile' => $configBase . '/plugins/custom.smb.shares/smb-custom.conf',
         ];
     }
 
