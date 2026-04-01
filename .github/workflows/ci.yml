@@ -88,7 +88,6 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    continue-on-error: true  # Non-blocking until E2E test rewrite is complete
     
     steps:
       - uses: actions/checkout@v4
