@@ -25,7 +25,6 @@ class UrlConsistencyTest extends TestCase
     /** @var array<string> Deprecated/invalid routes that should not be used */
     private array $invalidRoutes = [
         '/Settings/CustomSMBShares',
-        '/Settings/SMBShares',
         '/CustomSMBShares',
         '/CustomSMBSharesAdd',
         '/CustomSMBSharesUpdate',

@@ -106,7 +106,6 @@ class BrowseLinkTest extends TestCase
     public function testBrowseLinkDoesNotUseDeprecatedRoutes(): void
     {
         $deprecatedRoutes = [
-            '/Settings/SMBShares/Browse',
             '/Settings/CustomSMBShares/Browse',
             '/CustomSMBShares/Browse',
         ];

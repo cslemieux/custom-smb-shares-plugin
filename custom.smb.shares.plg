@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2026.04.01a">
+<!ENTITY version   "2026.04.01d">
 <!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "cc433bc9dfde72a747a17ca2027032bf">
+<!ENTITY md5       "8a06db30c2286ea454f859dbd89faf4d">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -23,6 +23,13 @@
 
 <CHANGES>
 ##&name;
+
+###2026.04.01d
+- Fix: FileTree dropdown width (no longer stretches across full form)
+
+###2026.04.01b
+- Fix: FileTree dropdown positioning with Browse button layout
+- Fix: E2E test harness (short_open_tag, page name routing)
 
 ###2026.04.01a
 - Fix: Path input is now editable - type or paste paths directly

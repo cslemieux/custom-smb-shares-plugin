@@ -40,7 +40,7 @@ class PermissionsUITest extends E2ETestBase
     
     public function testPermissionCheckboxesRender()
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get($this->baseUrl . '/Settings/SMBShares');
         
         // Click Add Share
         $addButton = self::$driver->findElement(WebDriverBy::linkText('Add Share'));
@@ -71,7 +71,7 @@ class PermissionsUITest extends E2ETestBase
     
     public function testCheckboxClickUpdatesOctalPreview()
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get($this->baseUrl . '/Settings/SMBShares');
         self::$driver->findElement(WebDriverBy::linkText('Add Share'))->click();
         
         self::$driver->wait(10)->until(
@@ -96,7 +96,7 @@ class PermissionsUITest extends E2ETestBase
     
     public function testPresetSelectionUpdatesCheckboxes()
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get($this->baseUrl . '/Settings/SMBShares');
         self::$driver->findElement(WebDriverBy::linkText('Add Share'))->click();
         
         self::$driver->wait(10)->until(
@@ -122,7 +122,7 @@ class PermissionsUITest extends E2ETestBase
     
     public function testFormSubmissionIncludesOctalValues()
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get($this->baseUrl . '/Settings/SMBShares');
         self::$driver->findElement(WebDriverBy::linkText('Add Share'))->click();
         
         self::$driver->wait(10)->until(
@@ -147,7 +147,7 @@ class PermissionsUITest extends E2ETestBase
     public function testEditModeLoadsExistingPermissions()
     {
         // First add a share with specific permissions
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get($this->baseUrl . '/Settings/SMBShares');
         self::$driver->findElement(WebDriverBy::linkText('Add Share'))->click();
         
         self::$driver->wait(10)->until(
@@ -171,7 +171,7 @@ class PermissionsUITest extends E2ETestBase
         );
         
         // Reload page
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get($this->baseUrl . '/Settings/SMBShares');
         
         // Click edit on the share
         $editLink = self::$driver->findElement(WebDriverBy::linkText('Edit'));
@@ -203,7 +203,7 @@ class PermissionsUITest extends E2ETestBase
             'directory' => ['0755', '0775', '0777', '0700']
         ];
         
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get($this->baseUrl . '/Settings/SMBShares');
         self::$driver->findElement(WebDriverBy::linkText('Add Share'))->click();
         
         self::$driver->wait(10)->until(

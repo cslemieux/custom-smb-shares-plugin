@@ -199,6 +199,12 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.04.01d
+- Fix: FileTree dropdown width (no longer stretches across full form)
+
+### v2026.04.01b
+- Fix: FileTree dropdown positioning with Browse button layout
+
 ### v2026.04.01a
 - Fix: Path input is now editable — type or paste paths directly
 - Browse button still available for directory selection

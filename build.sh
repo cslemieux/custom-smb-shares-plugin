@@ -209,8 +209,20 @@ main() {
         }
     fi
     
-    # E2E tests disabled in build (run manually with: composer test:e2e)
-    log_warning "E2E tests skipped in build. Run manually if needed: composer test:e2e"
+    # E2E tests - run in full build mode, skip in fast mode
+    if [ "$FAST_BUILD" = true ]; then
+        log_warning "E2E tests skipped (fast build mode)"
+    else
+        if command -v chromedriver &> /dev/null; then
+            run_step "E2E Tests" "composer test:e2e" || {
+                log_error "E2E tests failed"
+                exit 1
+            }
+        else
+            log_warning "E2E tests skipped (chromedriver not installed). Install with: brew install chromedriver"
+            log_warning "E2E tests WILL be enforced in CI and release."
+        fi
+    fi
     
     # Step 5: Generate Coverage Report (optional, slow)
     if [ "${GENERATE_COVERAGE:-false}" = "true" ]; then

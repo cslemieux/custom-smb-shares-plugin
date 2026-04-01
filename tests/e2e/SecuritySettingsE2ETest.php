@@ -102,7 +102,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testSecurityModeDropdownExists(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PublicShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PublicShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -125,7 +125,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
     public function testSecurityModeShowsCorrectValue(): void
     {
         // Check public share
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PublicShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PublicShare');
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
                 WebDriverBy::cssSelector('select[name="security"]')
@@ -138,7 +138,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
         $this->assertEquals('public', $select->getFirstSelectedOption()->getAttribute('value'));
         
         // Check secure share
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=SecureShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=SecureShare');
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
                 WebDriverBy::cssSelector('select[name="security"]')
@@ -151,7 +151,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
         $this->assertEquals('secure', $select->getFirstSelectedOption()->getAttribute('value'));
         
         // Check private share
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PrivateShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PrivateShare');
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
                 WebDriverBy::cssSelector('select[name="security"]')
@@ -170,7 +170,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testUserAccessHiddenForPublicMode(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PublicShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PublicShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -188,7 +188,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testUserAccessVisibleForSecureMode(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=SecureShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=SecureShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -208,7 +208,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testUserAccessVisibleForPrivateMode(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PrivateShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PrivateShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -227,7 +227,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testUserAccessTogglesWithSecurityModeChange(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PublicShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PublicShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -273,7 +273,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testUserAccessDropdownsExist(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=SecureShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=SecureShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -293,7 +293,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testUserAccessDropdownOptions(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PrivateShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PrivateShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -318,7 +318,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testUserAccessShowsCorrectValues(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PrivateShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PrivateShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -349,7 +349,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testApplyButtonEnabledOnUserAccessChange(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=SecureShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=SecureShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -389,7 +389,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testAdvancedSettingsExist(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PublicShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PublicShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -412,7 +412,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testForceUserGroupFields(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PublicShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PublicShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -434,7 +434,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
 
     public function testHostAccessFields(): void
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=PublicShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PublicShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -469,7 +469,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
             $this->markTestSkipped('Harness does not support persistence testing');
         }
         
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=SecureShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=SecureShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -496,7 +496,7 @@ class SecuritySettingsE2ETest extends E2ETestBase
         sleep(2);
         
         // Reload page
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=SecureShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=SecureShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(

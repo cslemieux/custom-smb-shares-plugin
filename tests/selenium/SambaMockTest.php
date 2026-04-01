@@ -55,7 +55,7 @@ class SambaMockTest extends TestCase
     
     public function testSambaStatusDisplayed()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(WebDriverBy::id('samba-status'))
@@ -73,7 +73,7 @@ class SambaMockTest extends TestCase
         SambaMock::writeConfig('');
         SambaMock::clearLog();
         
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         // Fill form
         $nameField = self::$driver->findElement(WebDriverBy::name('name'));

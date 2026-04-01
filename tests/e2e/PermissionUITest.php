@@ -16,7 +16,7 @@ class PermissionUITest extends E2ETestBase
 {
     public function testPermissionTableRendersInModal()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares/Edit');
         
         $this->waitForModal();
         
@@ -35,7 +35,7 @@ class PermissionUITest extends E2ETestBase
 
     public function testUserSearchTriggersAutocomplete()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares/Edit');
         $this->waitForModal();
         
         $searchInput = self::$driver->findElement(WebDriverBy::id('userSearch'));
@@ -50,7 +50,7 @@ class PermissionUITest extends E2ETestBase
 
     public function testAddUserToPermissionTable()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares/Edit');
         $this->waitForModal();
         
         // Search for user
@@ -73,7 +73,7 @@ class PermissionUITest extends E2ETestBase
 
     public function testPermissionDropdownChanges()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares/Edit');
         $this->waitForModal();
         
         // Add user first
@@ -98,7 +98,7 @@ class PermissionUITest extends E2ETestBase
 
     public function testRemoveUserFromTable()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares/Edit');
         $this->waitForModal();
         
         // Add user
@@ -126,7 +126,7 @@ class PermissionUITest extends E2ETestBase
 
     public function testFormSubmissionWithPermissions()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares/Edit');
         $this->waitForModal();
         
         // Fill basic fields

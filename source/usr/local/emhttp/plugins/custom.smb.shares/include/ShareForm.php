@@ -61,7 +61,7 @@ $showUserAccess = in_array($security, ['secure', 'private']);
 
 <style>
 .advanced, div.title.advanced { display: none; }
-.fileTree { position: absolute; z-index: 100; background: var(--background-color); border: 1px solid var(--border-color); max-height: 300px; overflow: auto; }
+.fileTree { position: absolute; z-index: 1000; background: var(--background-color); border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.4); max-height: 300px; overflow: auto; border-radius: 4px; padding: 4px 0; }
 #user-access-title { margin-top: 2rem; }
 #user-access-section { margin-top: 0; }
 
@@ -330,17 +330,18 @@ function done() {
 
 function openPathBrowser(el) {
     var $input = $(el);
+    var $wrapper = $input.closest('span');
     var $nameInput = $('input[name="name"]');
     
     // Skip if fileTree is already open
-    if ($input.next('.fileTree').length) {
-        $input.next('.fileTree').slideUp('fast', function(){ $(this).remove(); });
+    if ($wrapper.next('.fileTree').length) {
+        $wrapper.next('.fileTree').slideUp('fast', function(){ $(this).remove(); });
         return;
     }
     
-    // Create fileTree container
+    // Create fileTree container after the wrapper span
     var r = Math.floor((Math.random()*10000)+1);
-    $input.after("<div id='fileTree"+r+"' class='fileTree' style='display:none'></div>");
+    $wrapper.after("<div id='fileTree"+r+"' class='fileTree' style='display:none'></div>");
     var $ft = $('#fileTree'+r);
     
     $ft.fileTree({
@@ -367,15 +368,15 @@ function openPathBrowser(el) {
     // Position and show
     $ft.css({
         'position': 'absolute',
-        'left': $input.position().left,
-        'top': $input.position().top + $input.outerHeight(),
-        'width': Math.max($input.width(), 400),
+        'left': $wrapper.position().left,
+        'top': $wrapper.position().top + $wrapper.outerHeight(),
+        'width': 400,
         'z-index': 1000
     });
     
     // Close on click outside
     $(document).on('mouseup.filetree'+r, function(e) {
-        if (!$ft.is(e.target) && $ft.has(e.target).length === 0 && !$input.is(e.target)) {
+        if (!$ft.is(e.target) && $ft.has(e.target).length === 0 && !$input.is(e.target) && !$wrapper.find('input[value="Browse"]').is(e.target)) {
             $ft.slideUp('fast', function(){ $(this).remove(); });
             $(document).off('mouseup.filetree'+r);
         }

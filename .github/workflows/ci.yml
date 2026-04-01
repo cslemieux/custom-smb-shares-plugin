@@ -84,11 +84,55 @@ jobs:
       
       - name: Security audit
         run: composer audit
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, xml, json
+      
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+      
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+      
+      - name: Setup ChromeDriver
+        uses: nanasess/setup-chromedriver@v2
+      
+      - name: Start ChromeDriver
+        run: |
+          chromedriver --port=9515 &
+          sleep 2
+          curl -sf http://localhost:9515/status | head -1
+      
+      - name: Run E2E tests
+        run: |
+          vendor/bin/phpunit --testsuite=E2E --no-coverage
+        env:
+          CHROMEDRIVER_PORT: 9515
+      
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: tests/e2e/screenshots/
+          retention-days: 7
   
   build:
     name: Build Package
     runs-on: ubuntu-latest
-    needs: [test, security]
+    needs: [test, security, e2e]
     
     steps:
       - uses: actions/checkout@v4

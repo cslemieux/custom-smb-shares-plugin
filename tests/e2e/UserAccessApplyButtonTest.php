@@ -76,7 +76,7 @@ class UserAccessApplyButtonTest extends E2ETestBase
     public function testUserAccessChangeEnablesApplyButton()
     {
         // Navigate to edit page for SecureShare
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=SecureShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=SecureShare');
         
         // Wait for page to load
         self::$driver->wait(10)->until(
@@ -148,7 +148,7 @@ class UserAccessApplyButtonTest extends E2ETestBase
      */
     public function testFormChangeEventFires()
     {
-        self::$driver->get($this->baseUrl . '/Settings/CustomSMBSharesUpdate?name=SecureShare');
+        self::$driver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=SecureShare');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(WebDriverBy::cssSelector('form'))

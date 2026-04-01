@@ -10,12 +10,23 @@ NC='\033[0m'
 
 VERSION=$1
 MESSAGE=${2:-"Release $VERSION"}
+SKIP_E2E=false
+AUTO_YES=false
 
 if [ -z "$VERSION" ]; then
-    echo -e "${RED}Usage: $0 <version> [message]${NC}"
+    echo -e "${RED}Usage: $0 <version> [message] [--skip-e2e] [--yes]${NC}"
     echo "Example: $0 v2025.12.14c 'Bug fixes and improvements'"
     exit 1
 fi
+
+# Check for flags in any position
+for arg in "$@"; do
+    if [ "$arg" = "--skip-e2e" ]; then
+        SKIP_E2E=true
+    elif [ "$arg" = "--yes" ] || [ "$arg" = "-y" ]; then
+        AUTO_YES=true
+    fi
+done
 
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║  Release to Public Repository                              ║"
@@ -38,7 +49,7 @@ if ! grep -q "### $VERSION\|### v$VERSION_NUM" README.md 2>/dev/null; then
     echo "  ### $VERSION"
     echo "  - Your changes here"
     echo ""
-    read -p "Continue without changelog update? (y/N) " -n 1 -r
+    if [ "$AUTO_YES" = true ]; then REPLY=y; else read -p "Continue without changelog update? (y/N) " -n 1 -r; fi
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         echo "Aborted. Update README.md changelog and commit, then re-run."
@@ -49,11 +60,33 @@ fi
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$BRANCH" != "main" ]; then
     echo -e "${YELLOW}Warning: Not on main branch (on $BRANCH)${NC}"
-    read -p "Continue anyway? (y/N) " -n 1 -r
+    if [ "$AUTO_YES" = true ]; then REPLY=y; else read -p "Continue anyway? (y/N) " -n 1 -r; fi
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         exit 1
     fi
+fi
+
+# Check CI status on public repo before releasing
+# Run local E2E tests before releasing
+if [ "$SKIP_E2E" = true ]; then
+    echo -e "${YELLOW}E2E tests skipped (--skip-e2e flag)${NC}"
+elif command -v chromedriver &> /dev/null; then
+    if composer test:e2e; then
+        echo -e "${GREEN}✓ E2E tests passed${NC}"
+    else
+        echo -e "${RED}Error: E2E tests failed!${NC}"
+        echo "Fix E2E test failures before releasing."
+        if [ "$AUTO_YES" = true ]; then REPLY=y; else read -p "Release anyway? (y/N) " -n 1 -r; fi
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    fi
+else
+    echo -e "${YELLOW}Warning: chromedriver not installed - cannot run E2E tests locally${NC}"
+    echo "E2E tests will be verified via CI status instead."
+    echo "Install chromedriver: brew install chromedriver"
 fi
 
 # Check CI status on public repo before releasing
@@ -67,7 +100,7 @@ if [ -n "$LATEST_CI_RUN" ]; then
         echo "Fix CI issues before releasing."
         echo ""
         echo "Check CI status: gh run list --repo cslemieux/unraid-custom-smb-shares --limit 5"
-        read -p "Release anyway? (y/N) " -n 1 -r
+        if [ "$AUTO_YES" = true ]; then REPLY=y; else read -p "Release anyway? (y/N) " -n 1 -r; fi
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             exit 1
@@ -110,7 +143,7 @@ echo "$FULL_MESSAGE"
 echo "---"
 echo ""
 echo -e "${YELLOW}>>> Proceed with release? (y/N) ${NC}"
-read -n 1 -r REPLY </dev/tty
+if [ "$AUTO_YES" = true ]; then REPLY=y; else read -n 1 -r REPLY </dev/tty; fi
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Aborted."

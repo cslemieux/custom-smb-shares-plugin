@@ -33,7 +33,7 @@ class UserGroupBrowserTest extends TestCase
     
     public function testUserBrowserRendersOnEditPage(): void
     {
-        self::$driver->get(self::$harness['url'] . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$harness['url'] . '/Settings/SMBShares/Edit');
         
         // Wait for permission manager to load
         self::$driver->wait(10)->until(
@@ -52,7 +52,7 @@ class UserGroupBrowserTest extends TestCase
     
     public function testUserBrowserHasSearchBox(): void
     {
-        self::$driver->get(self::$harness['url'] . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$harness['url'] . '/Settings/SMBShares/Edit');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -66,7 +66,7 @@ class UserGroupBrowserTest extends TestCase
     
     public function testUserBrowserDisplaysUsers(): void
     {
-        self::$driver->get(self::$harness['url'] . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$harness['url'] . '/Settings/SMBShares/Edit');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -80,7 +80,7 @@ class UserGroupBrowserTest extends TestCase
     
     public function testUserSelectionUpdatesHiddenField(): void
     {
-        self::$driver->get(self::$harness['url'] . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$harness['url'] . '/Settings/SMBShares/Edit');
         
         // Wait for user browser to load
         self::$driver->wait(10)->until(
@@ -111,7 +111,7 @@ class UserGroupBrowserTest extends TestCase
     
     public function testSearchFilterWorks(): void
     {
-        self::$driver->get(self::$harness['url'] . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$harness['url'] . '/Settings/SMBShares/Edit');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -143,7 +143,7 @@ class UserGroupBrowserTest extends TestCase
     
     public function testGroupsHaveAtPrefix(): void
     {
-        self::$driver->get(self::$harness['url'] . '/Settings/CustomSMBShares/Edit');
+        self::$driver->get(self::$harness['url'] . '/Settings/SMBShares/Edit');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(

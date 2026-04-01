@@ -75,7 +75,7 @@ class UnraidTestHarnessTest extends TestCase
     {
         $dir = self::$harness['harness_dir'];
         
-        $this->assertFileExists($dir . '/usr/local/emhttp/plugins/custom.smb.shares/CustomSMBShares.page');
+        $this->assertFileExists($dir . '/usr/local/emhttp/plugins/custom.smb.shares/SMBShares.page');
         $this->assertFileExists($dir . '/usr/local/emhttp/plugins/custom.smb.shares/include/lib.php');
         $this->assertFileExists($dir . '/usr/local/emhttp/plugins/custom.smb.shares/js/feedback.js');
         $this->assertFileExists($dir . '/usr/local/emhttp/plugins/custom.smb.shares/css/feedback.css');

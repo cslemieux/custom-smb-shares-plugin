@@ -53,7 +53,7 @@ class AddPropModalTest extends TestCase
     
     public function testAddPropButtonExists()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         $this->screenshot('01-page-loaded');
         
         $addPropButton = self::$driver->findElement(WebDriverBy::xpath("//input[@value='Add Prop']"));
@@ -63,7 +63,7 @@ class AddPropModalTest extends TestCase
     
     public function testModalOpensWhenButtonClicked()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         // Click Add Prop button
         $addPropButton = self::$driver->findElement(WebDriverBy::xpath("//input[@value='Add Prop']"));
@@ -83,7 +83,7 @@ class AddPropModalTest extends TestCase
     
     public function testModalHasRequiredFields()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         // Open modal
         $addPropButton = self::$driver->findElement(WebDriverBy::xpath("//input[@value='Add Prop']"));
@@ -111,7 +111,7 @@ class AddPropModalTest extends TestCase
     
     public function testConfigTypeChangesFields()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         // Open modal
         $addPropButton = self::$driver->findElement(WebDriverBy::xpath("//input[@value='Add Prop']"));
@@ -145,7 +145,7 @@ class AddPropModalTest extends TestCase
     
     public function testModalHasAddAndCancelButtons()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         // Open modal
         $addPropButton = self::$driver->findElement(WebDriverBy::xpath("//input[@value='Add Prop']"));
@@ -164,7 +164,7 @@ class AddPropModalTest extends TestCase
     
     public function testCancelButtonClosesModal()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         // Open modal
         $addPropButton = self::$driver->findElement(WebDriverBy::xpath("//input[@value='Add Prop']"));
@@ -189,7 +189,7 @@ class AddPropModalTest extends TestCase
     
     public function testAddButtonTriggersAlert()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         // Open modal
         $addPropButton = self::$driver->findElement(WebDriverBy::xpath("//input[@value='Add Prop']"));

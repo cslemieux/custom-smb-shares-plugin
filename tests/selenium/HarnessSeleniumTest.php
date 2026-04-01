@@ -71,7 +71,7 @@ class HarnessSeleniumTest extends TestCase
     
     public function testPageLoadsWithoutAuth()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         // Wait for page load
         self::$driver->wait(10)->until(
@@ -84,12 +84,12 @@ class HarnessSeleniumTest extends TestCase
         
         // Verify no redirect to login
         $currentUrl = self::$driver->getCurrentURL();
-        $this->assertStringContainsString('CustomSMBShares', $currentUrl);
+        $this->assertStringContainsString('SMBShares', $currentUrl);
     }
     
     public function testCSRFTokenPresent()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         $csrfToken = self::$driver->executeScript(
             'return typeof csrf_token !== "undefined" ? csrf_token : null;'
@@ -101,7 +101,7 @@ class HarnessSeleniumTest extends TestCase
     
     public function testFormRendersCorrectly()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(
@@ -121,7 +121,7 @@ class HarnessSeleniumTest extends TestCase
     
     public function testClientSideValidation()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         // Try invalid share name
         $nameField = self::$driver->findElement(WebDriverBy::name('name'));
@@ -138,7 +138,7 @@ class HarnessSeleniumTest extends TestCase
     
     public function testSharesTableVisible()
     {
-        self::$driver->get(self::$baseUrl . '/Settings/CustomSMBShares');
+        self::$driver->get(self::$baseUrl . '/Settings/SMBShares');
         
         self::$driver->wait(10)->until(
             WebDriverExpectedCondition::presenceOfElementLocated(

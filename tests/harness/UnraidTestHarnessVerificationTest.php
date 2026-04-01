@@ -35,7 +35,7 @@ class UnraidTestHarnessVerificationTest extends TestCase
     {
         $url = self::$harness['url'];
         
-        $ch = curl_init($url . '/Settings/CustomSMBShares');
+        $ch = curl_init($url . '/Settings/SMBShares');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         $response = curl_exec($ch);
@@ -48,7 +48,7 @@ class UnraidTestHarnessVerificationTest extends TestCase
     
     public function testDependenciesInjected()
     {
-        $url = self::$harness['url'] . '/Settings/CustomSMBShares';
+        $url = self::$harness['url'] . '/Settings/SMBShares';
         
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -87,7 +87,7 @@ class UnraidTestHarnessVerificationTest extends TestCase
     
     public function testCsrfTokenGenerated()
     {
-        $url = self::$harness['url'] . '/Settings/CustomSMBShares';
+        $url = self::$harness['url'] . '/Settings/SMBShares';
         
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

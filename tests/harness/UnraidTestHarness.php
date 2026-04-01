@@ -465,7 +465,7 @@ INI;
         // Start PHP built-in server in background
         $logFile = self::$harness_dir . '/php-server.log';
         $cmd = sprintf(
-            "php -S localhost:%d -t %s %s > %s 2>&1 & echo $!",
+            "php -d short_open_tag=On -S localhost:%d -t %s %s > %s 2>&1 & echo $!",
             (int)$port,
             escapeshellarg($docroot),
             escapeshellarg($router),
