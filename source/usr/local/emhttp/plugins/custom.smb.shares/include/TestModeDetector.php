@@ -78,7 +78,7 @@ class TestModeDetector
         // Detect by checking if /mnt/ exists at the expected harness root
         $root4 = dirname(dirname(dirname(dirname($configBase))));
         $root2 = dirname(dirname($configBase));
-        
+
         if (is_dir($root2 . '/mnt')) {
             self::$harnessRoot = $root2;
         } elseif (is_dir($root4 . '/mnt')) {

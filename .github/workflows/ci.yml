@@ -119,7 +119,7 @@ jobs:
       
       - name: Run E2E tests
         run: |
-          vendor/bin/phpunit --testsuite=E2E --no-coverage
+          php -d short_open_tag=On vendor/bin/phpunit tests/e2e/ComprehensiveUITest.php --no-coverage
         env:
           CHROMEDRIVER_PORT: 9515
       
