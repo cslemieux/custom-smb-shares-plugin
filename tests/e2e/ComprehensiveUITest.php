@@ -592,11 +592,10 @@ class ComprehensiveUITest extends E2ETestBase
         
         // Toggle Advanced View on via the switchButton
         // Click the switch-button-background element (the visual toggle)
-        self::$sharedDriver->executeScript('
+        $this->jQueryScript('
             var $cb = $(".advancedview");
             if ($cb.length) {
                 $cb.prop("checked", true);
-                // Trigger the change handler directly
                 var status = true;
                 if (status) { $(".advanced").show(); } else { $(".advanced").hide(); }
             }
@@ -617,7 +616,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->assertTrue($hasPermissionGrid, 'Advanced section should contain permission grid');
         
         // Toggle Advanced View off
-        self::$sharedDriver->executeScript('$(".advancedview").prop("checked", false); $(".advanced").hide();');
+        $this->jQueryScript('$(".advancedview").prop("checked", false); $(".advanced").hide();');
         sleep(1);
         $this->screenshot('tabswitch-03-advanced-toggled-off');
         
@@ -1173,7 +1172,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('filetree-02-dropdown-triggered');
         
         // Get positions and verify
-        $positions = self::$sharedDriver->executeScript('
+        $positions = $this->jQueryScript('
             var $input = $("input[name=path]");
             var $dropdown = $input.closest("span").next(".fileTree");
             
@@ -1283,7 +1282,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->screenshot('layout-tablet-768x1024');
         
         // Verify shares list still visible on tablet
-        $listVisible = self::$sharedDriver->executeScript('return $(".custom-shares-table").is(":visible");');
+        $listVisible = $this->jQueryScript('return $(".custom-shares-table").is(":visible");');
         $this->assertTrue($listVisible, 'Shares list should be visible on tablet');
         
         // Reset to desktop
@@ -1473,7 +1472,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->fillField('path', '/mnt/user/masktest');
         
         // Toggle Advanced View to access permission mask fields
-        self::$sharedDriver->executeScript('$(".advancedview").prop("checked", true).trigger("change");');
+        $this->jQueryScript('$(".advancedview").prop("checked", true).trigger("change");');
         usleep(500000); // Wait for toggle animation
         
         $this->screenshot('mask-advanced-toggle');
@@ -1491,7 +1490,7 @@ class ComprehensiveUITest extends E2ETestBase
             $this->assertTrue($hasPermissionGrid, 'Advanced section should contain permission grid');
         } else {
             // Advanced toggle might not work in test harness - verify form is still functional
-            $formExists = self::$sharedDriver->executeScript('return $("form").length > 0;');
+            $formExists = $this->jQueryScript('return $("form").length > 0;');
             $this->assertTrue($formExists, 'Form should be present');
         }
     }
@@ -1509,7 +1508,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->assertTrue($showSuccessExists, 'showSuccess function should exist');
         
         // Trigger a success notification via JavaScript
-        self::$sharedDriver->executeScript('showSuccess("Test success message");');
+        $this->jQueryScript('showSuccess("Test success message");');
         usleep(500000); // Wait for notification to appear
         
         $this->screenshot('notification-success');
@@ -1532,7 +1531,7 @@ class ComprehensiveUITest extends E2ETestBase
         $this->assertTrue($showErrorExists, 'showError function should exist');
         
         // Trigger an error notification via JavaScript
-        self::$sharedDriver->executeScript('showError("Test error message");');
+        $this->jQueryScript('showError("Test error message");');
         usleep(500000); // Wait for notification to appear
         
         $this->screenshot('notification-error');
@@ -1549,7 +1548,7 @@ class ComprehensiveUITest extends E2ETestBase
         self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
         
         // Trigger a notification
-        self::$sharedDriver->executeScript('showSuccess("Dismissal test");');
+        $this->jQueryScript('showSuccess("Dismissal test");');
         usleep(500000);
         
         $this->screenshot('notification-before-dismiss');
@@ -1567,7 +1566,7 @@ class ComprehensiveUITest extends E2ETestBase
         
         // If using SweetAlert, try to close it
         if ($stillVisible) {
-            self::$sharedDriver->executeScript('$(".sweet-alert button").click();');
+            $this->jQueryScript('$(".sweet-alert button").click();');
             usleep(500000);
         }
         
@@ -1610,7 +1609,7 @@ class ComprehensiveUITest extends E2ETestBase
     {
         self::$sharedDriver->wait($timeout)->until(function($driver) {
             // SweetAlert 1.x creates .sweet-alert element
-            return $driver->executeScript('return $(".sweet-alert").length > 0 && $(".sweet-alert").is(":visible");');
+            return $driver->executeScript('return typeof jQuery !== "undefined" && $(".sweet-alert").length > 0 && $(".sweet-alert").is(":visible");');
         });
     }
     

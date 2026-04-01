@@ -104,6 +104,19 @@ abstract class E2ETestBase extends TestCase
     }
     
     /**
+     * Execute JavaScript that requires jQuery, with safety check.
+     * Waits up to 5 seconds for jQuery to be available before executing.
+     */
+    protected function jQueryScript(string $script, int $timeout = 5)
+    {
+        // Wait for jQuery to be available
+        $this->driver->wait($timeout)->until(function ($driver) {
+            return $driver->executeScript('return typeof jQuery !== "undefined";');
+        });
+        return $this->driver->executeScript($script);
+    }
+    
+    /**
      * Close all modals and overlays (no-op for page-based navigation)
      */
     protected function closeAllModals(): void
