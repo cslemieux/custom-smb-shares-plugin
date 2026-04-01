@@ -69,7 +69,7 @@ function validateShare(array &$data): array
     $errors = [];
 
     if (empty($data['name']) || preg_match(ConfigRegistry::SHARE_NAME_PATTERN, $data['name'])) {
-        $errors[] = 'Invalid share name. Shares cannot contain [ ] " / \ : ; | < > , ? * = characters.';
+        $errors[] = 'Invalid share name. Shares cannot contain [ ] " / \\ : ; | < > , ? * = characters.';
     }
 
     $pathPattern = TestModeDetector::getPathPattern();

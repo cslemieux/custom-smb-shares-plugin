@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2026.02.10">
+<!ENTITY version   "2026.04.01">
 <!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "fb2262085dcbfd2776b156c925de6509">
+<!ENTITY md5       "b26df05d492819bd2e8a879a77f5f12e">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -23,6 +23,11 @@
 
 <CHANGES>
 ##&name;
+
+###2026.04.01
+- Fix: Allow all valid SMB share name characters (thanks Squid!)
+- Share names now permit spaces, dots, accents, and most special characters
+- Only SMB-forbidden characters are blocked: [ ] " / \ : ; | &lt; &gt; , ? * =
 
 ###2026.02.10
 - Feature: Add File Browser link to share list (requested by Frank1940)

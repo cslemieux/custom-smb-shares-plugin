@@ -1,56 +1,59 @@
 <?php
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/../helpers/ChrootTestEnvironment.php';
+require_once __DIR__ . '/../../source/usr/local/emhttp/plugins/custom.smb.shares/include/lib.php';
+
 class ShareValidationTest extends TestCase {
-    private function validateShare($data) {
-        $errors = [];
-        
-        if (empty($data['name']) || !preg_match('/^[a-zA-Z0-9_-]+$/', $data['name'])) {
-            $errors[] = 'Invalid share name';
-        }
-        
-        if (empty($data['path']) || !preg_match('#^/mnt/#', $data['path'])) {
-            $errors[] = 'Path must start with /mnt/';
-        }
-        
-        if (isset($data['create_mask']) && !preg_match('/^[0-7]{4}$/', $data['create_mask'])) {
-            $errors[] = 'Invalid create mask';
-        }
-        
-        return empty($errors) ? true : $errors;
+    private static $configDir;
+    
+    public static function setUpBeforeClass(): void
+    {
+        self::$configDir = ChrootTestEnvironment::setup();
+    }
+    
+    protected function setUp(): void
+    {
+        ChrootTestEnvironment::reset();
+        ChrootTestEnvironment::mkdir('user/data');
+    }
+    
+    public static function tearDownAfterClass(): void
+    {
+        ChrootTestEnvironment::teardown();
     }
     
     public function testValidShare() {
         $share = [
             'name' => 'test_share',
-            'path' => '/mnt/user/data',
+            'path' => ChrootTestEnvironment::getMntPath('user/data'),
             'create_mask' => '0664'
         ];
         
-        $this->assertTrue($this->validateShare($share));
+        $errors = validateShare($share);
+        $this->assertEmpty($errors);
     }
     
     public function testInvalidShareName() {
-        $share = ['name' => 'test share!', 'path' => '/mnt/user/data'];
-        $result = $this->validateShare($share);
+        $share = ['name' => 'test[share]', 'path' => ChrootTestEnvironment::getMntPath('user/data')];
+        $result = validateShare($share);
         
-        $this->assertIsArray($result);
-        $this->assertContains('Invalid share name', $result);
+        $this->assertNotEmpty($result);
+        $this->assertStringContainsString('share name', strtolower($result[0]));
     }
     
     public function testInvalidPath() {
         $share = ['name' => 'test', 'path' => '/home/data'];
-        $result = $this->validateShare($share);
+        $result = validateShare($share);
         
-        $this->assertIsArray($result);
-        $this->assertContains('Path must start with /mnt/', $result);
+        $this->assertNotEmpty($result);
     }
     
     public function testInvalidMask() {
-        $share = ['name' => 'test', 'path' => '/mnt/user/data', 'create_mask' => '999'];
-        $result = $this->validateShare($share);
+        $share = ['name' => 'test', 'path' => ChrootTestEnvironment::getMntPath('user/data'), 'create_mask' => '999'];
+        $result = validateShare($share);
         
-        $this->assertIsArray($result);
-        $this->assertContains('Invalid create mask', $result);
+        $this->assertNotEmpty($result);
+        $this->assertStringContainsString('mask', strtolower($result[0]));
     }
 }

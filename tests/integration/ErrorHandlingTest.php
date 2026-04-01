@@ -37,7 +37,7 @@ class ErrorHandlingTest extends TestCase
     public function testInvalidShareNameReturnsError()
     {
         $share = [
-            'name' => 'Invalid Name!',
+            'name' => 'Invalid[Name]',
             'path' => ChrootTestEnvironment::getMntPath('user/testshare')
         ];
         
@@ -85,7 +85,7 @@ class ErrorHandlingTest extends TestCase
     public function testMultipleErrorsReturned()
     {
         $share = [
-            'name' => 'Invalid Name!',
+            'name' => 'Invalid[Name]',
             'path' => '/invalid/path',
             'create_mask' => 'abcd'
         ];

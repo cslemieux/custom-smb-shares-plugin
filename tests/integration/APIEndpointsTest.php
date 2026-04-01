@@ -47,7 +47,7 @@ class APIEndpointsTest extends TestCase
     public function testAddShareInvalidName()
     {
         $share = [
-            'name' => 'Invalid Name!',
+            'name' => 'Invalid[Name]',
             'path' => ChrootTestEnvironment::getMntPath('user/testshare')
         ];
         
@@ -133,7 +133,7 @@ class APIEndpointsTest extends TestCase
         saveShares($shares, self::$configDir);
         
         $loadedShares = loadShares(self::$configDir);
-        $loadedShares[0]['name'] = 'Invalid Name!';
+        $loadedShares[0]['name'] = 'Invalid[Name]';
         
         $errors = validateShare($loadedShares[0]);
         $this->assertNotEmpty($errors);
@@ -228,7 +228,7 @@ class APIEndpointsTest extends TestCase
     public function testValidateShareInvalid()
     {
         $share = [
-            'name' => 'Invalid Name!',
+            'name' => 'Invalid[Name]',
             'path' => '/invalid/path',
             'create_mask' => '9999'
         ];
@@ -273,7 +273,7 @@ class APIEndpointsTest extends TestCase
     public function testImportConfigInvalid()
     {
         $invalidData = [
-            ['name' => 'Invalid Name!', 'path' => '/invalid']
+            ['name' => 'Invalid[Name]', 'path' => '/invalid']
         ];
         
         $errors = validateShare($invalidData[0]);

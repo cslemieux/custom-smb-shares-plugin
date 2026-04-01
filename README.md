@@ -199,6 +199,11 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.04.01
+- Fix: Allow all valid SMB share name characters (thanks Squid!)
+- Share names now permit spaces, dots, accents, and most special characters
+- Only SMB-forbidden characters are blocked: `[ ] " / \ : ; | < > , ? * =`
+
 ### v2026.02.10
 - Add File Browser link to share list (requested by Frank1940)
 - Click the browse icon next to any share path to open Unraid's built-in File Browser
