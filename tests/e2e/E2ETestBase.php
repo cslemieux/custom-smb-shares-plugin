@@ -31,14 +31,16 @@ abstract class E2ETestBase extends TestCase
     }
     
     /**
-     * Wait for modal to open
+     * Wait for form page to be ready (replaces modal wait)
+     * Waits for form fields to be present on the page
      */
     protected function waitForModal(int $timeout = 10): void
     {
         try {
+            // Wait for form fields to be present on the page (page-based navigation, not modal)
             $this->driver->wait($timeout)->until(
                 WebDriverExpectedCondition::presenceOfElementLocated(
-                    WebDriverBy::cssSelector('.ui-dialog')
+                    WebDriverBy::cssSelector('input[name="name"], input[name="path"], form')
                 )
             );
         } catch (\Exception $e) {
@@ -47,21 +49,13 @@ abstract class E2ETestBase extends TestCase
                 'return window.jsErrors || [];'
             );
             if (!empty($jsErrors)) {
-                throw new \Exception("Modal failed to open. JS Errors: " . json_encode($jsErrors));
-            }
-            
-            // Check if button exists
-            $buttonExists = $this->driver->executeScript(
-                'return $("input[value=\'Add Share\']").length > 0;'
-            );
-            if (!$buttonExists) {
-                throw new \Exception("Modal failed to open. Add Share button not found");
+                throw new \Exception("Page form failed to load. JS Errors: " . json_encode($jsErrors));
             }
             
             throw $e;
         }
         
-        // Wait for modal animation and jQuery to finish
+        // Wait for page to be fully ready
         usleep(HarnessConfig::getModalAnimationDelay());
     }
     
@@ -102,21 +96,12 @@ abstract class E2ETestBase extends TestCase
     }
     
     /**
-     * Close all modals and overlays
+     * Close all modals and overlays (no-op for page-based navigation)
      */
     protected function closeAllModals(): void
     {
-        try {
-            // Close jQuery UI dialogs (only if jQuery is loaded)
-            $this->driver->executeScript('
-                if (typeof $ !== "undefined" && $(".ui-dialog").length > 0) {
-                    $(".ui-dialog").dialog("close");
-                    $(".ui-widget-overlay").remove();
-                }
-            ');
-        } catch (\Exception $e) {
-            // Ignore if no dialogs open or jQuery not loaded
-        }
+        // Plugin uses page-based navigation, not jQuery UI dialogs
+        // This method is kept for backward compatibility but is a no-op
     }
     
     /**
@@ -141,16 +126,13 @@ abstract class E2ETestBase extends TestCase
     }
     
     /**
-     * Click element with retry and overlay handling
+     * Click element with retry
      */
     protected function clickElement(WebDriverBy $by, int $maxRetries = HarnessConfig::MAX_CLICK_RETRIES): void
     {
         $attempt = 0;
         while ($attempt < $maxRetries) {
             try {
-                // Remove overlays first
-                $this->driver->executeScript('$(".ui-widget-overlay").remove();');
-                
                 // Wait for element
                 $element = $this->driver->wait(10)->until(
                     WebDriverExpectedCondition::elementToBeClickable($by)
@@ -299,20 +281,6 @@ abstract class E2ETestBase extends TestCase
         if (isset($this->driver)) {
             // Dismiss any alerts first
             $this->dismissAlerts();
-            
-            // Close all modals
-            $this->closeAllModals();
-            
-            // Verify modals are actually closed
-            $maxAttempts = HarnessConfig::MAX_MODAL_CLOSE_ATTEMPTS;
-            for ($i = 0; $i < $maxAttempts; $i++) {
-                $modalVisible = $this->driver->executeScript('return $(".ui-dialog:visible").length;');
-                if ($modalVisible == 0) {
-                    break;
-                }
-                usleep(HarnessConfig::MODAL_CLOSE_RETRY_MS * 1000);
-                $this->closeAllModals();
-            }
             
             // Clear any test data
             try {
