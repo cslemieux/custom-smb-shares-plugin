@@ -119,6 +119,25 @@ jobs:
       
       - name: Run E2E tests
         run: |
+          # Start harness and capture a page for diagnostics
+          php -d short_open_tag=On -r "
+            require_once 'tests/harness/UnraidTestHarness.php';
+            \$config = json_decode(file_get_contents('tests/configs/ComprehensiveUITest.json'), true);
+            \$h = UnraidTestHarness::setup(\$config);
+            sleep(2);
+            echo 'Harness URL: ' . \$h['url'] . PHP_EOL;
+            echo 'Harness dir: ' . \$h['harness_dir'] . PHP_EOL;
+            \$html = @file_get_contents(\$h['url'] . '/Settings/SMBShares');
+            echo 'Main page length: ' . strlen(\$html) . PHP_EOL;
+            echo 'Has jQuery: ' . (strpos(\$html, 'jquery') !== false ? 'YES' : 'NO') . PHP_EOL;
+            echo 'Has test-assets: ' . (strpos(\$html, 'test-assets') !== false ? 'YES' : 'NO') . PHP_EOL;
+            \$addHtml = @file_get_contents(\$h['url'] . '/Settings/SMBSharesAdd');
+            echo 'Add page length: ' . strlen(\$addHtml) . PHP_EOL;
+            echo 'Add has jQuery: ' . (strpos(\$addHtml, 'jquery') !== false ? 'YES' : 'NO') . PHP_EOL;
+            \$asset = @file_get_contents(\$h['url'] . '/test-assets/jquery-3.6.0.min.js');
+            echo 'jQuery asset length: ' . strlen(\$asset) . PHP_EOL;
+            UnraidTestHarness::teardown();
+          " 2>&1 || true
           php -d short_open_tag=On vendor/bin/phpunit tests/e2e/ComprehensiveUITest.php --no-coverage --verbose
         env:
           CHROMEDRIVER_PORT: 9515
