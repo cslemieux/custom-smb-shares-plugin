@@ -148,11 +148,11 @@ _(Share Name)_:
 > Share names are case-sensitive and must be unique across all shares.
 
 _(Path)_:
-: <input type="text" name="path" value="<?=htmlspecialchars($share['path'] ?? '')?>" required placeholder="_(Click to browse...)_" onclick="openPathBrowser(this)" readonly>
+: <span class="inline-flex flex-row items-center gap-1" style="display:inline-flex; align-items:center; gap:4px;"><input type="text" name="path" value="<?=htmlspecialchars($share['path'] ?? '')?>" required placeholder="_(Enter path or click browse...)_" style="flex:1;"><input type="button" value="_(Browse)_" onclick="openPathBrowser(this.parentNode.querySelector('input[name=path]'))"></span>
 
 > The path to the directory you want to share. Must be under /mnt/ (e.g., /mnt/user/myshare).
 >
-> Click to browse and select a directory.
+> Type or paste a path, or click Browse to select a directory.
 
 _(Comment)_:
 : <input type="text" name="comment" value="<?=htmlspecialchars($share['comment'] ?? '')?>">

@@ -199,6 +199,11 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.04.01a
+- Fix: Path input is now editable — type or paste paths directly
+- Browse button still available for directory selection
+- Removed unused legacy script (generate-config.sh)
+
 ### v2026.04.01
 - Fix: Allow all valid SMB share name characters (thanks Squid!)
 - Share names now permit spaces, dots, accents, and most special characters
