@@ -9,7 +9,8 @@
       "multi1", "multi2", "multi3",
       "editdelete",
       "workflowtest", "editworkflow", "deleteworkflow",
-      "duplicate"
+      "duplicate",
+      "renametest", "renamedup1", "renamedup2", "renamepreserve"
     ]
   },
   "dependencies": {

@@ -990,6 +990,197 @@ class ComprehensiveUITest extends E2ETestBase
         $this->assertEmpty($found, "Share should be deleted");
     }
     
+    // ==================== RENAME TESTS ====================
+    
+    public function testShareNameFieldIsEditableOnEditPage()
+    {
+        // Setup: Create test share
+        $this->createTestShare('RenameFieldTest', '/mnt/user/renametest');
+        
+        // Navigate to edit page
+        self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
+        $editLink = self::$sharedDriver->findElement(
+            WebDriverBy::xpath("//tr[contains(., 'RenameFieldTest')]//a[contains(@href, 'SMBSharesUpdate')]")
+        );
+        $editLink->click();
+        
+        $this->waitForPageReady();
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'));
+        $this->screenshot('rename-field-01-edit-page');
+        
+        // Verify name field is NOT readonly
+        $nameField = self::$sharedDriver->findElement(WebDriverBy::cssSelector('input[name="name"]'));
+        $readonly = $nameField->getAttribute('readonly');
+        $this->assertNull($readonly, 'Share name field should not be readonly on edit page');
+        
+        // Verify we can actually type in it
+        $nameField->clear();
+        $nameField->sendKeys('RenamedShare');
+        $this->assertEquals('RenamedShare', $nameField->getAttribute('value'), 'Should be able to type in name field');
+        $this->screenshot('rename-field-02-typed');
+    }
+    
+    public function testRenameShareWorkflow()
+    {
+        // Setup: Create test share with a comment to verify preservation
+        $this->createTestShare('OriginalName', '/mnt/user/renametest');
+        
+        // Update the share to have a comment (directly in config for setup)
+        $shares = $this->loadSharesFromConfig();
+        foreach ($shares as &$s) {
+            if ($s['name'] === 'OriginalName') {
+                $s['comment'] = 'Test comment for rename';
+                break;
+            }
+        }
+        unset($s);
+        $configFile = $this->harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares/shares.json';
+        file_put_contents($configFile, json_encode($shares, JSON_PRETTY_PRINT));
+        
+        // Navigate to main page and click edit
+        self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
+        $editLink = self::$sharedDriver->findElement(
+            WebDriverBy::xpath("//tr[contains(., 'OriginalName')]//a[contains(@href, 'SMBSharesUpdate')]")
+        );
+        $editLink->click();
+        
+        $this->waitForPageReady();
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'));
+        $this->screenshot('rename-workflow-01-edit-page');
+        
+        // Verify original_name hidden field has the old name
+        $originalNameField = self::$sharedDriver->findElement(WebDriverBy::cssSelector('input[name="original_name"]'));
+        $this->assertEquals('OriginalName', $originalNameField->getAttribute('value'));
+        
+        // Change the name
+        $this->fillField('name', 'RenamedShare');
+        $this->screenshot('rename-workflow-02-name-changed');
+        
+        // Submit
+        $this->clickModalButton('Apply');
+        $this->waitForAjaxComplete();
+        $this->assertSuccessMessageShown();
+        $this->screenshot('rename-workflow-03-submitted');
+        
+        // Wait for redirect
+        sleep(2);
+        
+        // Verify in backend: old name gone, new name exists with preserved settings
+        $shares = $this->loadSharesFromConfig();
+        $oldNames = array_filter($shares, fn($s) => $s['name'] === 'OriginalName');
+        $newNames = array_filter($shares, fn($s) => $s['name'] === 'RenamedShare');
+        
+        $this->assertEmpty($oldNames, 'Old share name should no longer exist');
+        $this->assertCount(1, $newNames, 'New share name should exist');
+        
+        $renamedShare = array_values($newNames)[0];
+        $this->assertEquals('/mnt/user/renametest', $renamedShare['path'], 'Path should be preserved after rename');
+        $this->assertEquals('Test comment for rename', $renamedShare['comment'], 'Comment should be preserved after rename');
+    }
+    
+    public function testRenameToDuplicateNameIsRejected()
+    {
+        // Setup: Create two shares
+        $this->createTestShare('ShareAlpha', '/mnt/user/renamedup1');
+        $this->createTestShare('ShareBeta', '/mnt/user/renamedup2');
+        
+        // Navigate to edit ShareAlpha
+        self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
+        $editLink = self::$sharedDriver->findElement(
+            WebDriverBy::xpath("//tr[contains(., 'ShareAlpha')]//a[contains(@href, 'SMBSharesUpdate')]")
+        );
+        $editLink->click();
+        
+        $this->waitForPageReady();
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'));
+        $this->screenshot('rename-dup-01-edit-page');
+        
+        // Try to rename to ShareBeta (already exists)
+        $this->fillField('name', 'ShareBeta');
+        $this->clickModalButton('Apply');
+        $this->waitForAjaxComplete();
+        $this->screenshot('rename-dup-02-submitted');
+        
+        // Should show error (SweetAlert)
+        $errorShown = self::$sharedDriver->wait(5)->until(function($driver) {
+            $swalElements = $driver->findElements(WebDriverBy::cssSelector('.sweet-alert'));
+            foreach ($swalElements as $el) {
+                if ($el->isDisplayed()) {
+                    return true;
+                }
+            }
+            return null;
+        });
+        $this->assertTrue($errorShown, 'Error dialog should appear for duplicate name');
+        $this->screenshot('rename-dup-03-error-shown');
+        
+        // Verify backend unchanged — ShareAlpha still exists with original name
+        $shares = $this->loadSharesFromConfig();
+        $alphaShares = array_filter($shares, fn($s) => $s['name'] === 'ShareAlpha');
+        $betaShares = array_filter($shares, fn($s) => $s['name'] === 'ShareBeta');
+        
+        $this->assertCount(1, $alphaShares, 'ShareAlpha should still exist');
+        $this->assertCount(1, $betaShares, 'ShareBeta should still exist (only one)');
+    }
+    
+    public function testRenamePreservesAllSettings()
+    {
+        // Setup: Create share with advanced settings
+        $configDir = $this->harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares';
+        $configFile = $configDir . '/shares.json';
+        $this->createShareDirectory('/mnt/user/renamepreserve');
+        
+        $share = [
+            'name' => 'PreserveTest',
+            'path' => '/mnt/user/renamepreserve',
+            'comment' => 'Advanced settings share',
+            'enabled' => true,
+            'export' => 'eh',
+            'security' => 'secure',
+            'fruit' => 'yes',
+            'create_mask' => '0644',
+            'directory_mask' => '0755',
+            'hosts_allow' => '192.168.1.0/24',
+        ];
+        file_put_contents($configFile, json_encode([$share], JSON_PRETTY_PRINT));
+        
+        // Navigate to edit page
+        self::$sharedDriver->get($this->baseUrl . '/plugins/custom.smb.shares/SMBShares.page');
+        $editLink = self::$sharedDriver->findElement(
+            WebDriverBy::xpath("//tr[contains(., 'PreserveTest')]//a[contains(@href, 'SMBSharesUpdate')]")
+        );
+        $editLink->click();
+        
+        $this->waitForPageReady();
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'));
+        
+        // Rename
+        $this->fillField('name', 'PreserveRenamed');
+        $this->clickModalButton('Apply');
+        $this->waitForAjaxComplete();
+        $this->assertSuccessMessageShown();
+        sleep(2);
+        
+        // Verify all settings preserved
+        $shares = $this->loadSharesFromConfig();
+        $renamed = array_values(array_filter($shares, fn($s) => $s['name'] === 'PreserveRenamed'));
+        $this->assertCount(1, $renamed, 'Renamed share should exist');
+        
+        $s = $renamed[0];
+        $this->assertEquals('/mnt/user/renamepreserve', $s['path']);
+        $this->assertEquals('Advanced settings share', $s['comment']);
+        $this->assertEquals('eh', $s['export']);
+        $this->assertEquals('secure', $s['security']);
+        $this->assertEquals('yes', $s['fruit']);
+        $this->assertEquals('0644', $s['create_mask']);
+        $this->assertEquals('0755', $s['directory_mask']);
+        $this->assertEquals('192.168.1.0/24', $s['hosts_allow']);
+        
+        // Old name should be gone
+        $old = array_filter($shares, fn($s) => $s['name'] === 'PreserveTest');
+        $this->assertEmpty($old, 'Old name should no longer exist');
+    }
+    
     public function testCancelOperations()
     {
         // Navigate to Add Share page

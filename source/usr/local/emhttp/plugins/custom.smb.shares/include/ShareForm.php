@@ -141,7 +141,7 @@ _(Enabled)_:
 > When disabled, this share will not be included in the Samba configuration.
 
 _(Share Name)_:
-: <input type="text" name="name" value="<?=htmlspecialchars($share['name'] ?? '')?>" maxlength="40" required <?=(!$isNew && !$isClone) ? 'readonly' : ''?>>
+: <input type="text" name="name" value="<?=htmlspecialchars($share['name'] ?? '')?>" maxlength="40" required>
 
 > The share name can be up to 40 characters. This name will be visible when browsing the network.
 >
@@ -426,7 +426,7 @@ function prepareForm(form) {
     
     // Submit via AJAX
     var $submitBtn = $form.find('input[type="submit"]');
-    var originalText = $submitBtn.val();
+    var originalText = $submitBtn.data('original-text');
     
     $submitBtn.val('<?=_('Saving')?>...').prop('disabled', true);
     
@@ -499,6 +499,11 @@ function updatePermissionMask(target) {
 
 // Initialize on page load
 $(function() {
+    // Store original button text before any onclick handlers can change it
+    $('input[type="submit"]').each(function() {
+        $(this).data('original-text', $(this).val());
+    });
+
     // Check if share has non-default advanced settings
     var hasAdvancedSettings = <?php
         $hasAdvanced = false;

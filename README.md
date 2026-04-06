@@ -199,6 +199,11 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.04.06
+- Fix: Share name field is now editable on the Edit page — you can rename shares
+- Fix: Duplicate name check when renaming a share
+- Fix: Submit button properly resets after validation errors
+
 ### v2026.04.01d
 - Fix: FileTree dropdown width (no longer stretches across full form)
 

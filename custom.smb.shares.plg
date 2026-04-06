@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2026.04.01d">
+<!ENTITY version   "2026.04.06">
 <!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "8a06db30c2286ea454f859dbd89faf4d">
+<!ENTITY md5       "5c3c53a1ebc14d5c00b0ae89b0cad560">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -23,6 +23,11 @@
 
 <CHANGES>
 ##&name;
+
+###2026.04.06
+- Fix: Share name field is now editable on the Edit page (allows renaming shares)
+- Fix: Duplicate name check when renaming a share
+- Fix: Submit button properly resets after validation errors
 
 ###2026.04.01d
 - Fix: FileTree dropdown width (no longer stretches across full form)

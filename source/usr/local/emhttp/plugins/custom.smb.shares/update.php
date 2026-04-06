@@ -49,6 +49,15 @@ try {
 
     $shares = loadShares();
 
+    // If renaming, check for duplicate name
+    if (!empty($originalName) && $originalName !== $shareName) {
+        if (findShareIndex($shares, $shareName) !== -1) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'A share with the name "' . htmlspecialchars($shareName) . '" already exists']);
+            exit;
+        }
+    }
+
     // Find share by name instead of index (race-condition safe)
     $found = false;
     $lookupName = !empty($originalName) ? $originalName : $shareName;
