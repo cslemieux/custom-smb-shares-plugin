@@ -199,6 +199,9 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.05.18a
+- Fix: **Import from File** now actually imports the selected file (was a silent no-op — the modal disappeared during file picker interaction, so the import never ran and no notification appeared). Paste-import was unaffected.
+
 ### v2026.05.18
 - Fix: Import Config feature was silently broken (JSON read from wrong source) — now works for both file and paste imports
 - Fix: Restore from backup now actually restores AND reloads Samba — previously shares.json was updated but Samba kept serving the old config

@@ -266,7 +266,12 @@ function importConfig() {
         showCancelButton: true,
         confirmButtonText: "_(Import)_",
         cancelButtonText: "_(Cancel)_",
-        closeOnConfirm: false
+        closeOnConfirm: false,
+        // Prevent the modal from closing when the user clicks outside it
+        // (e.g., synthetic clicks during file picker interaction with the
+        // 'Import from File' button — SweetAlert 1.x default would close
+        // the modal mid-flow).
+        allowOutsideClick: false
     }, function(confirmed) {
         if (!confirmed) return;
         var content = $('#importJsonText').val();
@@ -287,7 +292,16 @@ function importConfig() {
                 if (file) {
                     var reader = new FileReader();
                     reader.onload = function(e) {
-                        $('#importJsonText').val(e.target.result);
+                        var content = e.target.result;
+                        // Auto-import on file load. Don't rely on the
+                        // user clicking the modal's Import button after
+                        // file selection — SweetAlert 1.x can close the
+                        // modal during file picker interaction, leaving
+                        // the user with no way to submit and no feedback.
+                        // Populate the textarea (in case the modal is
+                        // still open) and immediately call doImport.
+                        $('#importJsonText').val(content);
+                        doImport(content);
                     };
                     reader.readAsText(file);
                 }
@@ -301,32 +315,40 @@ function importConfig() {
 function doImport(content) {
     try {
         JSON.parse(content);
-        $.post('/plugins/custom.smb.shares/api.php', { action: 'importConfig', config: content }, function(response) {
-            if (response.success) {
-                swal.close();
-                showSuccess("_(Configuration imported successfully)_");
-                setTimeout(function() { location.reload(); }, 1000);
-            } else {
-                swal.showInputError(response.error || "_(Import failed)_");
-            }
-        }, 'json').fail(function(xhr) {
-            // Surface HTTP errors (400/500) to the user instead of silent failure.
-            // Without this, jQuery's success-only callback never fires on errors,
-            // making the modal appear to do nothing.
-            var errorMsg = "_(Import failed)_";
-            try {
-                var errorBody = JSON.parse(xhr.responseText);
-                if (errorBody && errorBody.error) {
-                    errorMsg = errorBody.error;
-                }
-            } catch (e) {
-                errorMsg = "_(Server error)_: " + xhr.status + " " + xhr.statusText;
-            }
-            swal.showInputError(errorMsg);
-        });
     } catch (err) {
-        swal.showInputError("_(Invalid JSON format)_");
+        // Surface via both swal (if open) and toast (if not)
+        try { swal.showInputError("_(Invalid JSON format)_"); } catch (e) {}
+        showError("_(Invalid JSON format)_");
+        return;
     }
+    $.post('/plugins/custom.smb.shares/api.php', { action: 'importConfig', config: content }, function(response) {
+        if (response.success) {
+            try { swal.close(); } catch (e) {}
+            showSuccess("_(Configuration imported successfully)_");
+            setTimeout(function() { location.reload(); }, 1000);
+        } else {
+            // swal.showInputError requires the modal to be open. The
+            // file-import flow may have closed it during file picker
+            // interaction (SweetAlert 1.x outside-click behavior), so
+            // fall back to a toast in that case.
+            var errMsg = response.error || "_(Import failed)_";
+            try { swal.showInputError(errMsg); } catch (e) {}
+            showError(errMsg);
+        }
+    }, 'json').fail(function(xhr) {
+        // Surface HTTP errors (400/500) instead of silent failure.
+        var errorMsg = "_(Import failed)_";
+        try {
+            var errorBody = JSON.parse(xhr.responseText);
+            if (errorBody && errorBody.error) {
+                errorMsg = errorBody.error;
+            }
+        } catch (e) {
+            errorMsg = "_(Server error)_: " + xhr.status + " " + xhr.statusText;
+        }
+        try { swal.showInputError(errorMsg); } catch (e) {}
+        showError(errorMsg);
+    });
 }
 
 function exportConfig() {

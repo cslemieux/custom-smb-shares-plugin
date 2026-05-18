@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2026.05.18">
+<!ENTITY version   "2026.05.18a">
 <!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "f3344f4a030813128420784195ebcd2f">
+<!ENTITY md5       "a5cee60267a8986229e210c3212d42a1">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -23,6 +23,9 @@
 
 <CHANGES>
 ##&name;
+
+###2026.05.18a
+- Fix: Import from File now actually imports (was a silent no-op — the modal closed during file picker interaction, leaving users with no way to submit and no feedback)
 
 ###2026.05.18
 - Fix: Import Config now works (was silently 400-ing — JSON read from wrong source)
