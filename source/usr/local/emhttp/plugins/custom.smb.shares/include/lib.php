@@ -139,6 +139,29 @@ function sanitizeShareData(array $data): array
 }
 
 /**
+ * Normalize a single share entry: trim whitespace from string fields and
+ * strip control characters from the name. This protects against stray
+ * whitespace/newlines/control chars in shares.json that would otherwise
+ * break inline JS string contexts (delete/clone actions).
+ *
+ * @param array<string, mixed> $share
+ * @return array<string, mixed>
+ */
+function normalizeShare(array $share): array
+{
+    if (isset($share['name']) && is_string($share['name'])) {
+        // Strip control chars (0x00-0x1F, 0x7F) and trim surrounding whitespace
+        $share['name'] = trim(preg_replace('/[\x00-\x1F\x7F]/u', '', $share['name']) ?? '');
+    }
+    foreach (['path', 'comment', 'valid_users', 'invalid_users', 'hosts_allow', 'hosts_deny'] as $field) {
+        if (isset($share[$field]) && is_string($share[$field])) {
+            $share[$field] = trim($share[$field]);
+        }
+    }
+    return $share;
+}
+
+/**
  * @param string|null $configBase
  * @return array<int, array<string, mixed>>
  */
@@ -154,7 +177,12 @@ function loadShares(?string $configBase = null): array
         return [];
     }
     $data = json_decode($content, true);
-    return is_array($data) ? $data : [];
+    if (!is_array($data)) {
+        return [];
+    }
+    // Normalize on load so existing dirty data on disk gets cleaned up
+    // the first time it's read after upgrading to v2026.05.18.
+    return array_map('normalizeShare', $data);
 }
 
 /**
@@ -170,6 +198,8 @@ function saveShares(array $shares, ?string $configBase = null)
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
     }
+    // Normalize before persisting so dirty data never reaches disk.
+    $shares = array_map('normalizeShare', $shares);
     return file_put_contents($file, json_encode($shares, JSON_PRETTY_PRINT));
 }
 
@@ -292,22 +322,52 @@ function viewBackup(string $filename, ?string $configBase = null)
 }
 
 /**
- * Restore from backup
- * @param string $filename
+ * Restore shares from a backup file.
+ *
+ * Validates that the backup file exists and contains a valid JSON shares
+ * array BEFORE overwriting the live shares.json — so a corrupt backup
+ * cannot destroy the user's current configuration.
+ *
+ * Does NOT create an auto-snapshot of the current state. The forum bug
+ * "deletes 1 share at the bottom of the screen on each click" was the
+ * user watching backup-retention pruning during repeated failed restore
+ * attempts (each click created a snapshot then pruned the oldest backup).
+ * Users have N retained backups (default 10) to recover from a bad restore.
+ *
+ * Returns array shape matches reloadSamba(): { success, error }.
+ *
+ * @param string $filename Backup filename (basename only, validated by caller)
  * @param string|null $configBase
- * @return bool
+ * @return array{success: bool, error: string}
  */
-function restoreBackup(string $filename, ?string $configBase = null): bool
+function restoreBackup(string $filename, ?string $configBase = null): array
 {
     $base = $configBase ?? ConfigRegistry::getConfigBase();
     $backupFile = $base . '/plugins/custom.smb.shares/backups/' . $filename;
     $sharesFile = $base . '/plugins/custom.smb.shares/shares.json';
 
     if (!file_exists($backupFile)) {
-        return false;
+        return ['success' => false, 'error' => "Backup file not found: $filename"];
     }
 
-    return copy($backupFile, $sharesFile);
+    // Validate backup contents BEFORE overwriting shares.json — protects
+    // against a corrupt or truncated backup destroying the live config.
+    $contents = file_get_contents($backupFile);
+    if ($contents === false) {
+        $err = error_get_last();
+        return ['success' => false, 'error' => 'Cannot read backup file: ' . ($err['message'] ?? 'unknown error')];
+    }
+    $decoded = json_decode($contents, true);
+    if (!is_array($decoded)) {
+        return ['success' => false, 'error' => 'Backup file does not contain valid JSON share data'];
+    }
+
+    if (!@copy($backupFile, $sharesFile)) {
+        $err = error_get_last();
+        return ['success' => false, 'error' => 'Failed to restore: ' . ($err['message'] ?? 'unknown copy error')];
+    }
+
+    return ['success' => true, 'error' => ''];
 }
 
 /**

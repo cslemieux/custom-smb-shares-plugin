@@ -115,13 +115,30 @@ function restoreBackup(filename) {
         if (confirmed) {
             $.post('/plugins/custom.smb.shares/api.php', { action: 'restoreBackup', filename: filename }, function(response) {
                 if (response.success) {
-                    showSuccess('_(Backup restored successfully)_');
+                    // Surface partial success when Samba failed to reload — the
+                    // shares.json was restored but the live Samba config wasn't
+                    // updated, so the user should know to reload manually.
+                    if (response.sambaReloaded && response.sambaReloaded.success === false) {
+                        showError('_(Backup restored, but Samba reload failed)_: ' +
+                            (response.sambaReloaded.error || '_(unknown error)_') +
+                            ' _(Visit Custom SMB Shares page and click Reload Samba)_.');
+                    } else {
+                        showSuccess('_(Backup restored successfully)_');
+                    }
                     loadBackups();
                 } else {
                     showError(response.error || '_(Failed to restore backup)_');
                 }
-            }, 'json').fail(function() {
-                showError('_(Failed to restore backup)_');
+            }, 'json').fail(function(xhr) {
+                // Surface server-side error message instead of a generic failure
+                var msg = '_(Failed to restore backup)_';
+                try {
+                    var body = JSON.parse(xhr.responseText);
+                    if (body && body.error) msg = body.error;
+                } catch (e) {
+                    if (xhr.status) msg = msg + ' (' + xhr.status + ' ' + xhr.statusText + ')';
+                }
+                showError(msg);
             });
         }
     });

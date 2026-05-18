@@ -85,3 +85,24 @@ screenshots/
 
 # Test harness temp files
 cleanup-harness.sh
+
+# Kiro session artifacts (per-PID, ephemeral)
+.kiro/.compaction-canary.*
+.kiro/.prompt-counter
+.kiro/.prompt-counter.*
+.kiro/.steering-timestamps.*
+.kiro/.orch-awareness.*
+.kiro/.workstream-seen.*
+.kiro/.mailbox-seen.*
+.kiro/.spec-injection-cache.*
+.kiro/.structure-injection-cache.*
+.kiro/.skill-rec-state.*
+.kiro/cache/
+.kiro/00-memory/.lock.*
+.kiro/00-memory/.certificate-data.*
+.kiro/00-memory/.operating-mode.*
+.kiro/00-memory/workstreams/.lock.*
+.kiro/think_gate_scope_cache.*
+.kiro/think_gate_triage_cache.*
+.kiro/health-scores.jsonl
+.vite/

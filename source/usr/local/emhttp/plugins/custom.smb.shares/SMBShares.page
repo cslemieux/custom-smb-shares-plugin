@@ -138,9 +138,9 @@ $sambaRunning = $sambaStatus['running'];
     <td>
         <a href="/SMBSharesUpdate?name=<?= urlencode($share['name']) ?>"><i class="fa fa-edit"></i> _(Edit)_</a>
         <span style="margin:0 5px;">|</span>
-        <a href="#" onclick="cloneShare('<?= htmlspecialchars($share['name']) ?>'); return false;"><i class="fa fa-clone"></i> _(Clone)_</a>
+        <a href="#" class="js-clone-share" data-share-name="<?= htmlspecialchars($share['name'], ENT_QUOTES) ?>"><i class="fa fa-clone"></i> _(Clone)_</a>
         <span style="margin:0 5px;">|</span>
-        <a href="#" onclick="deleteShare('<?= htmlspecialchars($share['name']) ?>'); return false;"><i class="fa fa-trash"></i> _(Delete)_</a>
+        <a href="#" class="js-delete-share" data-share-name="<?= htmlspecialchars($share['name'], ENT_QUOTES) ?>"><i class="fa fa-trash"></i> _(Delete)_</a>
     </td>
 </tr>
 <?php endforeach; ?>
@@ -155,6 +155,20 @@ $sambaRunning = $sambaStatus['running'];
 
 <script>
 $(function() {
+    // Delegated handlers for Clone/Delete actions. Using data-share-name +
+    // delegated handler instead of inline onclick="..."  because htmlspecialchars()
+    // does NOT escape newlines/control chars in JS-string context, which used to
+    // break the first share row when its name had whitespace artifacts (forum
+    // bug: 'first row delete does nothing'). Attribute-encoding is safe.
+    $(document).on('click', '.js-clone-share', function(e) {
+        e.preventDefault();
+        cloneShare($(this).data('shareName'));
+    });
+    $(document).on('click', '.js-delete-share', function(e) {
+        e.preventDefault();
+        deleteShare($(this).data('shareName'));
+    });
+
     // Initialize toggle switches
     $('.share-toggle').switchButton({
         on_label: '',
@@ -295,7 +309,21 @@ function doImport(content) {
             } else {
                 swal.showInputError(response.error || "_(Import failed)_");
             }
-        }, 'json');
+        }, 'json').fail(function(xhr) {
+            // Surface HTTP errors (400/500) to the user instead of silent failure.
+            // Without this, jQuery's success-only callback never fires on errors,
+            // making the modal appear to do nothing.
+            var errorMsg = "_(Import failed)_";
+            try {
+                var errorBody = JSON.parse(xhr.responseText);
+                if (errorBody && errorBody.error) {
+                    errorMsg = errorBody.error;
+                }
+            } catch (e) {
+                errorMsg = "_(Server error)_: " + xhr.status + " " + xhr.statusText;
+            }
+            swal.showInputError(errorMsg);
+        });
     } catch (err) {
         swal.showInputError("_(Invalid JSON format)_");
     }

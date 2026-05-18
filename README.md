@@ -199,6 +199,16 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.05.18
+- Fix: Import Config feature was silently broken (JSON read from wrong source) — now works for both file and paste imports
+- Fix: Restore from backup now actually restores AND reloads Samba — previously shares.json was updated but Samba kept serving the old config
+- Fix: First-row Delete/Clone no longer fails on shares whose names have stray whitespace or control characters
+- Fix: Picking a path via the Browse button on the Edit page no longer silently renames the share (regression from v2026.04.06 rename feature)
+- Improved: Specific error messages on import/restore failures (was silently failing with no feedback)
+- Improved: Share names are normalized on load/save — stale dirty data is cleaned up automatically
+- Tests: 24 new integration tests + 2 new E2E tests (440 tests / 1062 assertions, all green)
+- Thanks to comet424 on the Unraid forums for the detailed bug reports
+
 ### v2026.04.06
 - Fix: Share name field is now editable on the Edit page — you can rename shares
 - Fix: Duplicate name check when renaming a share

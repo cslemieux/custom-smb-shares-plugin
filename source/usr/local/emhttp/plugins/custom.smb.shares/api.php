@@ -118,17 +118,20 @@ if ($action === 'exportConfig') {
 }
 
 if ($action === 'importConfig') {
-    $input = file_get_contents('php://input');
-    if ($input === false) {
+    // jQuery $.post sends application/x-www-form-urlencoded with `config` field
+    // containing the JSON string. Read from $_POST['config'], not php://input
+    // (which contains the entire form-encoded body, not just the config payload).
+    $configJson = $_POST['config'] ?? '';
+    if ($configJson === '') {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Failed to read input']);
+        echo json_encode(['success' => false, 'error' => 'Missing config parameter']);
         exit;
     }
-    $shares = json_decode($input, true);
+    $shares = json_decode($configJson, true);
 
     if (!is_array($shares)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid configuration format']);
+        echo json_encode(['success' => false, 'error' => 'Invalid configuration format: not valid JSON']);
         exit;
     }
 
@@ -247,15 +250,32 @@ if ($action === 'restoreBackup') {
         echo json_encode(['success' => false, 'error' => 'Invalid backup filename']);
         exit;
     }
-    // Backup current before restore
-    backupShares();
+    // restoreBackup() validates the backup contents and creates a recovery
+    // snapshot of the current state before overwriting (so failed restores
+    // don't destroy live config or burn through backup retention).
     $result = restoreBackup($filename);
-    if ($result) {
-        echo json_encode(['success' => true, 'message' => 'Backup restored successfully']);
-    } else {
+    if (!$result['success']) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Failed to restore backup']);
+        echo json_encode(['success' => false, 'error' => $result['error']]);
+        exit;
     }
+
+    // Regenerate the Samba config file from the restored shares — without
+    // this, the restore appears to "do nothing" because shares.json is
+    // updated but Samba serves the previous configuration.
+    $shares = loadShares();
+    $sambaConfig = generateSambaConfig($shares);
+    $configPath = ConfigRegistry::getConfigBase() . '/plugins/custom.smb.shares/smb-custom.conf';
+    file_put_contents($configPath, $sambaConfig);
+
+    // Reload Samba so the restored shares are immediately effective.
+    $sambaResult = reloadSamba();
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Backup restored successfully',
+        'sambaReloaded' => $sambaResult,
+    ]);
     exit;
 }
 

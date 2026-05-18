@@ -354,9 +354,16 @@ function openPathBrowser(el) {
     }, function(folder) {
         // Folder clicked - update input but keep tree open for drilling down
         $input.val(folder.replace(/\/\/+/g, '/'));
-        
-        // Auto-populate name from folder name (only if name field is editable)
-        if (!$nameInput.prop('readonly')) {
+
+        // Auto-populate name from folder name — but ONLY when adding or cloning,
+        // never on Edit. Pre-v2026.04.06 the name field was readonly on Edit so
+        // a readonly check was sufficient. The rename feature unlocked the field,
+        // so we now detect mode via the form's action URL: 'add.php' = Add or
+        // Clone; 'update.php' = Edit. (Forum bug #5 of 5: picking a path on Edit
+        // silently renamed the share.)
+        var formAction = $input.closest('form').attr('action') || '';
+        var isAddOrClone = formAction.indexOf('/add.php') !== -1;
+        if (isAddOrClone && !$nameInput.prop('readonly')) {
             var name = folder.split('/').filter(Boolean).pop();
             if (name) {
                 $nameInput.val(name);

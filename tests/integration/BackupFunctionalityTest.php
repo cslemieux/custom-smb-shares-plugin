@@ -138,7 +138,7 @@ class BackupFunctionalityTest extends TestCase
         
         // Restore from backup
         $result = restoreBackup($filename, self::$configBase);
-        $this->assertTrue($result, "restoreBackup should succeed");
+        $this->assertTrue($result['success'], 'restoreBackup should succeed: ' . ($result['error'] ?? ''));
         
         // Verify restoration
         $restored = json_decode(file_get_contents($sharesFile), true);

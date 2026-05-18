@@ -13,7 +13,7 @@ jobs:
       contents: write
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -43,7 +43,7 @@ jobs:
         run: echo "MD5=$(cat archive/*.md5)" >> $GITHUB_OUTPUT
       
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ steps.version.outputs.VERSION }}
           body: |

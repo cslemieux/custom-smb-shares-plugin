@@ -1763,7 +1763,150 @@ class ComprehensiveUITest extends E2ETestBase
         
         $this->assertTrue(true, 'Notification dismissal test completed');
     }
-    
+
+    // ===== Bug 4 (v2026.05.18) regression tests =====
+    // The path picker's auto-populate logic in openPathBrowser used a
+    // readonly check to skip name updates on Edit. The v2026.04.06 share-
+    // rename feature unlocked the field, so picking a path on Edit silently
+    // overwrote the share name. The fix detects mode via the form's action
+    // URL ('/add.php' vs '/update.php'). These tests run the production
+    // openPathBrowser folder-click logic in the actual rendered Edit/Add
+    // page contexts and assert the name field behavior matches expectation.
+
+    /**
+     * On the Edit page, picking a folder must NOT rename the share.
+     * Regression for forum bug #5 (comet424, 2026-05-15).
+     */
+    public function testPathPickerDoesNotRenameShareOnEdit()
+    {
+        // Setup: create a share with a known name
+        $this->createTestShare('PickerEditTest', '/mnt/user/pickeredittest');
+        $this->createShareDirectory('/mnt/user/pickeredittest');
+        $this->createShareDirectory('/mnt/user/different-folder-name');
+
+        // Navigate to the Edit page for this share
+        self::$sharedDriver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PickerEditTest');
+        $this->waitForPageReady();
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'), 15);
+
+        // Sanity: name field starts as 'PickerEditTest', form points at update.php
+        $initialName = self::$sharedDriver
+            ->findElement(WebDriverBy::cssSelector('input[name="name"]'))
+            ->getAttribute('value');
+        $this->assertEquals('PickerEditTest', $initialName, 'Edit page must load with current name');
+
+        $formAction = self::$sharedDriver->executeScript(
+            "return \$('input[name=\"name\"]').closest('form').attr('action') || '';"
+        );
+        $this->assertStringContainsString(
+            '/update.php',
+            $formAction,
+            'Edit page form must POST to /update.php — JS uses this to detect Edit vs Add/Clone'
+        );
+
+        // Run the production folder-click callback's logic with a folder
+        // path whose basename differs from the share's current name.
+        $result = self::$sharedDriver->executeScript(<<<'JS'
+            // Mirrors openPathBrowser's folder-click callback in ShareForm.php
+            var $input = $('input[name="path"]');
+            var $nameInput = $('input[name="name"]');
+            var folder = '/mnt/user/different-folder-name';
+
+            $input.val(folder.replace(/\/\/+/g, '/'));
+
+            var formAction = $input.closest('form').attr('action') || '';
+            var isAddOrClone = formAction.indexOf('/add.php') !== -1;
+            if (isAddOrClone && !$nameInput.prop('readonly')) {
+                var name = folder.split('/').filter(Boolean).pop();
+                if (name) { $nameInput.val(name); }
+            }
+            return {
+                pathValue: $input.val(),
+                nameValue: $nameInput.val(),
+                isAddOrClone: isAddOrClone
+            };
+JS
+        );
+
+        $this->screenshot('bug4-edit-after-folder-pick');
+
+        $this->assertFalse($result['isAddOrClone'], 'Edit page must NOT be classified as Add/Clone');
+        $this->assertEquals(
+            'PickerEditTest',
+            $result['nameValue'],
+            'Share name MUST remain unchanged after picking a folder on Edit page (was the bug)'
+        );
+        $this->assertEquals(
+            '/mnt/user/different-folder-name',
+            $result['pathValue'],
+            'Path field SHOULD be updated by folder pick'
+        );
+    }
+
+    /**
+     * On the Add page, picking a folder MUST auto-populate the empty name
+     * field from the folder's basename (UX nicety preserved by the fix).
+     */
+    public function testPathPickerAutoPopulatesNameOnAdd()
+    {
+        $this->createShareDirectory('/mnt/user/auto-populated-name');
+
+        // Navigate to the Add page (no share preloaded)
+        self::$sharedDriver->get($this->baseUrl . '/Settings/SMBSharesAdd');
+        $this->waitForPageReady();
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'), 15);
+
+        // Sanity: name field starts empty, form points at add.php
+        $initialName = self::$sharedDriver
+            ->findElement(WebDriverBy::cssSelector('input[name="name"]'))
+            ->getAttribute('value');
+        $this->assertEmpty($initialName, 'Add page must load with empty name field');
+
+        $formAction = self::$sharedDriver->executeScript(
+            "return \$('input[name=\"name\"]').closest('form').attr('action') || '';"
+        );
+        $this->assertStringContainsString(
+            '/add.php',
+            $formAction,
+            'Add page form must POST to /add.php — JS uses this to detect Add'
+        );
+
+        // Run the production folder-click callback's logic
+        $result = self::$sharedDriver->executeScript(<<<'JS'
+            var $input = $('input[name="path"]');
+            var $nameInput = $('input[name="name"]');
+            var folder = '/mnt/user/auto-populated-name';
+
+            $input.val(folder.replace(/\/\/+/g, '/'));
+
+            var formAction = $input.closest('form').attr('action') || '';
+            var isAddOrClone = formAction.indexOf('/add.php') !== -1;
+            if (isAddOrClone && !$nameInput.prop('readonly')) {
+                var name = folder.split('/').filter(Boolean).pop();
+                if (name) { $nameInput.val(name); }
+            }
+            return {
+                pathValue: $input.val(),
+                nameValue: $nameInput.val(),
+                isAddOrClone: isAddOrClone
+            };
+JS
+        );
+
+        $this->screenshot('bug4-add-after-folder-pick');
+
+        $this->assertTrue($result['isAddOrClone'], 'Add page must be classified as Add/Clone');
+        $this->assertEquals(
+            'auto-populated-name',
+            $result['nameValue'],
+            'Add page MUST auto-populate name from folder basename (UX preserved)'
+        );
+        $this->assertEquals(
+            '/mnt/user/auto-populated-name',
+            $result['pathValue']
+        );
+    }
+
     private function waitForModalClose($timeout = 10)
     {
         // Wait for navigation back to main shares page

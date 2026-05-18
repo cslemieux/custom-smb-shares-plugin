@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -30,7 +30,7 @@ jobs:
         run: composer validate --strict
       
       - name: Cache Composer packages
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         with:
           path: vendor
           key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -103,7 +103,7 @@ jobs:
         run: composer install --prefer-dist --no-progress
       
       - name: Setup Chrome
-        uses: browser-actions/setup-chrome@v2
+        uses: browser-actions/setup-chrome@v1
         with:
           chrome-version: stable
       
@@ -143,7 +143,7 @@ jobs:
       
       - name: Upload screenshots on failure
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: e2e-screenshots
           path: tests/e2e/screenshots/
@@ -155,7 +155,7 @@ jobs:
     needs: [test, security, e2e]
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -180,7 +180,7 @@ jobs:
           cat archive/*.md5
       
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: plugin-package
           path: |
