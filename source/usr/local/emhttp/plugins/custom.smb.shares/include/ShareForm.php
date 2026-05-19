@@ -352,8 +352,16 @@ function openPathBrowser(el) {
     }, function(file) {
         // File selected - ignore for folders only
     }, function(folder) {
-        // Folder clicked - update input but keep tree open for drilling down
-        $input.val(folder.replace(/\/\/+/g, '/'));
+        // Folder clicked - update input but keep tree open for drilling down.
+        // Mirror the Docker plugin pattern (CreateDocker.php's pickPath): fire
+        // a 'change' event after .val() so Unraid's form-state machinery
+        // notices the change. Without this, Unraid disables the Apply button
+        // until the user types into a field — a real keystroke fires
+        // input/change events naturally, but programmatic .val() does not.
+        // Forum report (comet424, post-v2026.05.18a): "changing a directory
+        // under Edit for the Path still doesnt populate the SAVE button you
+        // still gotta edit like share name or comment name to detect..."
+        $input.val(folder.replace(/\/\/+/g, '/')).trigger('change');
 
         // Auto-populate name from folder name — but ONLY when adding or cloning,
         // never on Edit. Pre-v2026.04.06 the name field was readonly on Edit so
@@ -366,7 +374,8 @@ function openPathBrowser(el) {
         if (isAddOrClone && !$nameInput.prop('readonly')) {
             var name = folder.split('/').filter(Boolean).pop();
             if (name) {
-                $nameInput.val(name);
+                // Same as path: trigger change so Unraid sees the auto-populated name.
+                $nameInput.val(name).trigger('change');
             }
         }
         // Don't close - let user continue drilling down or click outside to close

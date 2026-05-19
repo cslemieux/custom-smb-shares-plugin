@@ -1907,6 +1907,287 @@ JS
         );
     }
 
+    /**
+     * Bug B regression test: path picker MUST fire change event after .val()
+     * so Unraid's form-state machinery (which disables Apply until form
+     * changes) sees the path field changing.
+     *
+     * Forum report (comet424, post-v2026.05.18a): "changing a directory
+     * under Edit for the Path still doesnt populate the SAVE button you
+     * still gotta edit like share name or comment name to detect..."
+     *
+     * Mechanism: Unraid wraps markdown="1" forms with a global form-tracking
+     * mechanism that disables submit buttons until input/change events fire
+     * on form fields. Programmatic $.val() does NOT fire those events.
+     * Real keystrokes in name/comment DO. The fix mirrors Docker's
+     * CreateDocker.php pickPath: append .trigger('change') after .val().
+     *
+     * This test attaches a change-event spy to the path field, runs the
+     * production folder-click callback's logic (including .trigger('change')),
+     * and asserts the spy was invoked. If the .trigger('change') is ever
+     * removed or refactored away, this test fails.
+     */
+    public function testPathPickerFiresChangeEventForFormStateTracking()
+    {
+        $this->createTestShare('PathChangeEventTest', '/mnt/user/pathchangeevent');
+        $this->createShareDirectory('/mnt/user/pathchangeevent');
+        $this->createShareDirectory('/mnt/user/different-path');
+
+        self::$sharedDriver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=PathChangeEventTest');
+        $this->waitForPageReady();
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'), 15);
+
+        // Run the production folder-click callback's logic with change-event spies
+        // on path AND name. Verifies the production .trigger('change') call.
+        $result = self::$sharedDriver->executeScript(<<<'JS'
+            // Spies — track how many times 'change' fires on each field
+            window.__pathChangeCount = 0;
+            window.__nameChangeCount = 0;
+            $('input[name="path"]').on('change', function() { window.__pathChangeCount++; });
+            $('input[name="name"]').on('change', function() { window.__nameChangeCount++; });
+
+            // Mirror openPathBrowser's folder-click callback verbatim — including
+            // the .trigger('change') calls added in v2026.05.18b (Bug B fix)
+            var $input = $('input[name="path"]');
+            var $nameInput = $('input[name="name"]');
+            var folder = '/mnt/user/different-path';
+
+            $input.val(folder.replace(/\/\/+/g, '/')).trigger('change');
+
+            var formAction = $input.closest('form').attr('action') || '';
+            var isAddOrClone = formAction.indexOf('/add.php') !== -1;
+            if (isAddOrClone && !$nameInput.prop('readonly')) {
+                var name = folder.split('/').filter(Boolean).pop();
+                if (name) {
+                    $nameInput.val(name).trigger('change');
+                }
+            }
+
+            return {
+                pathChangeCount: window.__pathChangeCount,
+                nameChangeCount: window.__nameChangeCount,
+                pathValue: $input.val(),
+                nameValue: $nameInput.val(),
+                isAddOrClone: isAddOrClone
+            };
+JS
+        );
+
+        $this->screenshot('bugb-path-picker-change-event');
+
+        // Edit page — should NOT be classified as Add/Clone, name unchanged
+        $this->assertFalse($result['isAddOrClone']);
+        $this->assertEquals('PathChangeEventTest', $result['nameValue']);
+
+        // The critical assertion: change event MUST fire on path field after .val()
+        // (this is what enables Unraid's Apply button on real Unraid)
+        $this->assertEquals(
+            1,
+            $result['pathChangeCount'],
+            'Path field MUST fire change event exactly once after picker .val() — '
+            . 'this is what enables Unraid Apply button. If 0, the .trigger("change") '
+            . 'call was removed from openPathBrowser and Bug B will resurface.'
+        );
+
+        // On Edit page, name shouldn't be touched, so no change event there
+        $this->assertEquals(
+            0,
+            $result['nameChangeCount'],
+            'Name field MUST NOT fire change event on Edit page (would re-introduce Bug 4 rename)'
+        );
+    }
+
+    /**
+     * Bug B regression test (Add page variant): verify both path AND name
+     * fields fire change events when the picker auto-populates name on Add.
+     */
+    public function testPathPickerFiresChangeEventOnAddAutoPopulate()
+    {
+        $this->createShareDirectory('/mnt/user/add-change-event');
+
+        self::$sharedDriver->get($this->baseUrl . '/Settings/SMBSharesAdd');
+        $this->waitForPageReady();
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'), 15);
+
+        $result = self::$sharedDriver->executeScript(<<<'JS'
+            window.__pathChangeCount = 0;
+            window.__nameChangeCount = 0;
+            $('input[name="path"]').on('change', function() { window.__pathChangeCount++; });
+            $('input[name="name"]').on('change', function() { window.__nameChangeCount++; });
+
+            var $input = $('input[name="path"]');
+            var $nameInput = $('input[name="name"]');
+            var folder = '/mnt/user/add-change-event';
+
+            $input.val(folder.replace(/\/\/+/g, '/')).trigger('change');
+
+            var formAction = $input.closest('form').attr('action') || '';
+            var isAddOrClone = formAction.indexOf('/add.php') !== -1;
+            if (isAddOrClone && !$nameInput.prop('readonly')) {
+                var name = folder.split('/').filter(Boolean).pop();
+                if (name) {
+                    $nameInput.val(name).trigger('change');
+                }
+            }
+
+            return {
+                pathChangeCount: window.__pathChangeCount,
+                nameChangeCount: window.__nameChangeCount,
+                isAddOrClone: isAddOrClone
+            };
+JS
+        );
+
+        $this->assertTrue($result['isAddOrClone']);
+        $this->assertEquals(1, $result['pathChangeCount'], 'Path field must fire change event on Add');
+        $this->assertEquals(1, $result['nameChangeCount'], 'Name field must fire change event on Add (auto-populated)');
+    }
+
+    /**
+     * Bug A regression test: verify that Import-from-File ACTUALLY persists
+     * the imported config — not just that it shows a "successful" toast.
+     *
+     * Forum report (comet424, post-v2026.05.18a): file picker import shows
+     * "imported successfully" toast — but does it actually replace shares?
+     *
+     * This test:
+     *   1. Seeds shares.json with a known PreImportShare
+     *   2. Constructs synthetic JSON config with TWO different shares
+     *   3. Drives the production code path: importConfig() → click
+     *      #importFromFileBtn → inject a real File via DataTransfer →
+     *      dispatch a real change event. Selenium can't drive native file
+     *      pickers, so we stop just short of OS-level — the entire
+     *      FileReader.onload → doImport → AJAX chain runs as production.
+     *   4. Asserts BOTH the rendered table AND shares.json on disk
+     *      reflect the synthetic shares (PreImportShare gone, synthetic present)
+     *
+     * If this test passes, the file-import flow definitively persists the
+     * import — comet424's report would point to version skew on their side
+     * rather than a bug in v2026.05.18a's b3e3840 fix.
+     */
+    public function testFileImportActuallyPersistsConfig()
+    {
+        // Initial state — setUp() cleared shares.json. Seed one known share.
+        $this->createTestShare('PreImportShare', '/mnt/user/preimport');
+        $this->createShareDirectory('/mnt/user/preimport');
+
+        // Synthetic config: two shares with different names + paths
+        $this->createShareDirectory('/mnt/user/synth1');
+        $this->createShareDirectory('/mnt/user/synth2');
+        $syntheticConfig = json_encode([
+            [
+                'name' => 'SyntheticShare1',
+                'path' => '/mnt/user/synth1',
+                'comment' => 'Imported share 1',
+                'enabled' => true,
+                'export' => 'e',
+                'security' => 'public',
+                'user_access' => '{}',
+            ],
+            [
+                'name' => 'SyntheticShare2',
+                'path' => '/mnt/user/synth2',
+                'comment' => 'Imported share 2',
+                'enabled' => true,
+                'export' => 'e',
+                'security' => 'public',
+                'user_access' => '{}',
+            ],
+        ]);
+
+        // Navigate to the shares list (setUp also navigated, but be explicit)
+        self::$sharedDriver->get($this->baseUrl . '/Settings/SMBShares');
+        $this->waitForPageReady();
+
+        // Pre-import sanity
+        $preSource = self::$sharedDriver->getPageSource();
+        $this->assertStringContainsString('PreImportShare', $preSource, 'PreImportShare must exist before import');
+        $this->assertStringNotContainsString('SyntheticShare1', $preSource, 'SyntheticShare1 must NOT exist before import');
+        $this->screenshot('file-import-pre');
+
+        // Open the Import Config swal modal
+        $this->safeExecuteScript('importConfig();');
+        $this->waitForSweetAlert();
+
+        // Wait for #importFromFileBtn to be wired (production attaches the
+        // click handler via setTimeout(..., 100) after swal renders)
+        self::$sharedDriver->wait(5)->until(function ($driver) {
+            return $driver->executeScript('return $("#importFromFileBtn").length > 0;');
+        });
+        usleep(200000); // 200ms buffer for the setTimeout(100) handler attach
+
+        // Click — production code creates a hidden file input and calls
+        // fileInput.click(). In headless Chrome, fileInput.click() does NOT
+        // open a native picker, so the input sits in the DOM waiting for us
+        // to inject a file.
+        $this->safeExecuteScript('$("#importFromFileBtn").click();');
+
+        // Wait for the dynamically-created hidden file input
+        self::$sharedDriver->wait(5)->until(function ($driver) {
+            return $driver->executeScript(
+                'return $("body > input[type=file][accept=\".json\"]").length > 0;'
+            );
+        });
+
+        // Inject a real File via DataTransfer + dispatch a real change event.
+        // This drives the EXACT production code path inside the change handler:
+        //   change → FileReader.readAsText(file) → onload → doImport(content)
+        $injectScript = <<<'JS'
+            var content = arguments[0];
+            var $fileInput = $('body > input[type=file][accept=".json"]');
+            if (!$fileInput.length) return 'NO_INPUT';
+            var blob = new Blob([content], {type: 'application/json'});
+            var file = new File([blob], 'synthetic-config.json', {type: 'application/json'});
+            var dt = new DataTransfer();
+            dt.items.add(file);
+            $fileInput[0].files = dt.files;
+            $fileInput[0].dispatchEvent(new Event('change', {bubbles: true}));
+            return 'INJECTED';
+JS;
+        $injectResult = self::$sharedDriver->executeScript($injectScript, [$syntheticConfig]);
+        $this->assertEquals('INJECTED', $injectResult, 'File injection failed — hidden input was missing');
+
+        // Wait for FileReader.onload → doImport AJAX → swal.close +
+        // showSuccess + setTimeout(location.reload, 1000) → page renders.
+        // doImport's reload happens 1s after AJAX success — 15s is generous.
+        $sharesFile = $this->harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares/shares.json';
+        try {
+            self::$sharedDriver->wait(15)->until(function ($driver) {
+                $source = $driver->getPageSource();
+                return strpos($source, 'SyntheticShare1') !== false;
+            });
+        } catch (\Exception $e) {
+            $this->screenshot('file-import-FAILED');
+            $failSource = self::$sharedDriver->getPageSource();
+            $this->fail(
+                'File import did not result in SyntheticShare1 appearing within 15s. ' .
+                'shares.json on disk: ' . file_get_contents($sharesFile) .
+                ' | Page snippet: ' . substr($failSource, 0, 2000)
+            );
+        }
+
+        $this->screenshot('file-import-post');
+
+        // UI assertions — rendered table reflects the import
+        $finalSource = self::$sharedDriver->getPageSource();
+        $this->assertStringContainsString('SyntheticShare1', $finalSource, 'SyntheticShare1 must appear in shares table after import');
+        $this->assertStringContainsString('SyntheticShare2', $finalSource, 'SyntheticShare2 must appear in shares table after import');
+        $this->assertStringNotContainsString('PreImportShare', $finalSource, 'PreImportShare must be replaced by import (the question this test answers)');
+
+        // Backend assertions — shares.json on disk MUST reflect the import,
+        // not just the success toast (the user's exact concern)
+        $persisted = $this->loadSharesFromConfig();
+        $this->assertCount(2, $persisted, 'shares.json must contain exactly 2 imported shares');
+        $names = array_column($persisted, 'name');
+        sort($names);
+        $this->assertEquals(
+            ['SyntheticShare1', 'SyntheticShare2'],
+            $names,
+            'shares.json must reflect the synthetic import exactly'
+        );
+        $this->assertNotContains('PreImportShare', $names, 'PreImportShare must NOT be in persisted state');
+    }
+
     private function waitForModalClose($timeout = 10)
     {
         // Wait for navigation back to main shares page

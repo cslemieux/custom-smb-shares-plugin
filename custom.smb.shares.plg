@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2026.05.18a">
+<!ENTITY version   "2026.05.18b">
 <!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "a5cee60267a8986229e210c3212d42a1">
+<!ENTITY md5       "54be9d72b42935a431b023f38bd84fae">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -23,6 +23,9 @@
 
 <CHANGES>
 ##&name;
+
+###2026.05.18b
+- Fix: Path picker now enables Apply button on Edit page. Previously, picking a folder via Browse left Apply disabled until you also typed in name or comment. Mirrors the Docker plugin pattern by firing a change event after setting the path field, so Unraid's form-state tracking sees the change.
 
 ###2026.05.18a
 - Fix: Import from File now actually imports (was a silent no-op — the modal closed during file picker interaction, leaving users with no way to submit and no feedback)
