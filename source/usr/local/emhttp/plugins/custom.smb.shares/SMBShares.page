@@ -5,6 +5,7 @@ Icon="share-alt"
 Code="f1e0"
 Type="xmenu"
 Tabs="false"
+Cond="(@parse_ini_file('/boot/config/plugins/custom.smb.shares/settings.cfg')['TOPBAR'] ?? 'enabled') !== 'disabled'"
 ---
 <?php
 require_once '/usr/local/emhttp/plugins/custom.smb.shares/include/lib.php';

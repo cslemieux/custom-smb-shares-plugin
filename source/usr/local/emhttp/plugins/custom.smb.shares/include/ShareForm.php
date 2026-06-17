@@ -11,6 +11,7 @@ require_once "$docroot/plugins/custom.smb.shares/include/lib.php";
 $shareName = $_GET['name'] ?? '';
 $cloneName = $_GET['clone'] ?? '';
 $shares = loadShares();
+$allowExternalPaths = isExternalPathsAllowed();
 
 // Find share by name (for edit) or clone source
 $share = [];
@@ -150,7 +151,7 @@ _(Share Name)_:
 _(Path)_:
 : <span class="inline-flex flex-row items-center gap-1" style="display:inline-flex; align-items:center; gap:4px;"><input type="text" name="path" value="<?=htmlspecialchars($share['path'] ?? '')?>" required placeholder="_(Enter path or click browse...)_" style="flex:1;"><input type="button" value="_(Browse)_" onclick="openPathBrowser(this.parentNode.querySelector('input[name=path]'))"></span>
 
-> The path to the directory you want to share. Must be under /mnt/ (e.g., /mnt/user/myshare).
+> The path to the directory you want to share. <?= $allowExternalPaths ? 'Paths outside /mnt are allowed (e.g. /tmp); system directories like /boot, /etc, /var are blocked. Ensure permissions are correct \u2014 RAM-backed paths like /tmp are cleared on reboot.' : 'Must be under /mnt/ (e.g., /mnt/user/myshare).' ?>
 >
 > Type or paste a path, or click Browse to select a directory.
 
@@ -345,8 +346,8 @@ function openPathBrowser(el) {
     var $ft = $('#fileTree'+r);
     
     $ft.fileTree({
-        root: '/mnt/user',
-        top: '/mnt',
+        root: '<?= $allowExternalPaths ? "/mnt" : "/mnt/user" ?>',
+        top: '<?= $allowExternalPaths ? "/" : "/mnt" ?>',
         filter: 'HIDE_FILES_FILTER',
         allowBrowsing: true
     }, function(file) {
@@ -424,8 +425,17 @@ function prepareForm(form) {
         return false;
     }
     
-    if (!path || !path.startsWith('/mnt/')) {
+    var allowExternalPaths = <?= $allowExternalPaths ? 'true' : 'false' ?>;
+    if (!path) {
+        swal({title: "<?=_('Error')?>", text: "<?=_('Path is required')?>", type: 'error'});
+        return false;
+    }
+    if (!allowExternalPaths && !path.startsWith('/mnt/')) {
         swal({title: "<?=_('Error')?>", text: "<?=_('Path must start with /mnt/')?>", type: 'error'});
+        return false;
+    }
+    if (allowExternalPaths && path.charAt(0) !== '/') {
+        swal({title: "<?=_('Error')?>", text: "<?=_('Path must be an absolute path (starting with /)')?>", type: 'error'});
         return false;
     }
     

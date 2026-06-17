@@ -199,6 +199,14 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.06.17
+- Add: **Configurable menu placement** (issue #21 — thanks dc911x). New "Show in top menu bar" setting: keep SMB Shares as a top-bar tab (default — unchanged) or move it to **Settings → User Utilities** like most plugins.
+- Add: **Allow share paths outside /mnt** (issue #22 — thanks johnoldiges). New opt-in setting (default off) permits share paths such as `/tmp`. System directories (`/boot`, `/etc`, `/var`, …) are always blocked even when enabled, and the check resolves symlinks so they cannot be used to escape the denylist.
+- Both new settings live on the plugin's Settings page and default to current behavior, so existing installs are unaffected.
+
+### v2026.05.18b
+- Fix: **Path picker now enables the Apply button on the Edit page** (forum: comet424). Previously, picking a folder via Browse left Apply disabled until you also typed in the name or comment field. The plugin now fires a change event after setting the path, so Unraid's form-state tracking detects the change (mirrors the Docker plugin's path picker).
+
 ### v2026.05.18a
 - Fix: **Import from File** now actually imports the selected file (was a silent no-op — the modal disappeared during file picker interaction, so the import never ran and no notification appeared). Paste-import was unaffected.
 

@@ -2,32 +2,20 @@ Title="Settings"
 Tag="cog"
 ---
 <?php
-$configFile = '/boot/config/plugins/custom.smb.shares/settings.cfg';
-$defaults = [
-    'SERVICE' => 'enabled',
-    'BACKUP_COUNT' => '10',
-];
+require_once '/usr/local/emhttp/plugins/custom.smb.shares/include/lib.php';
 
-// Load settings
-$settings = $defaults;
-if (file_exists($configFile)) {
-    $loaded = parse_ini_file($configFile);
-    if ($loaded) {
-        $settings = array_merge($defaults, $loaded);
-    }
-}
+// Load settings (defaults merged with settings.cfg)
+$settings = loadPluginSettings();
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $settings['SERVICE'] = $_POST['SERVICE'] ?? 'enabled';
     $settings['BACKUP_COUNT'] = max(1, min(50, (int)($_POST['BACKUP_COUNT'] ?? 10)));
+    $settings['TOPBAR'] = (($_POST['TOPBAR'] ?? 'enabled') === 'disabled') ? 'disabled' : 'enabled';
+    $settings['ALLOW_EXTERNAL_PATHS'] = (($_POST['ALLOW_EXTERNAL_PATHS'] ?? 'disabled') === 'enabled') ? 'enabled' : 'disabled';
     
     // Save settings
-    $content = "";
-    foreach ($settings as $key => $value) {
-        $content .= "$key=\"$value\"\n";
-    }
-    file_put_contents($configFile, $content);
+    savePluginSettings($settings);
     
     // If disabling, we don't need to do anything special
     // If enabling, regenerate config
@@ -44,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $enabled = $settings['SERVICE'] === 'enabled';
 $backupCount = $settings['BACKUP_COUNT'];
+$topbarEnabled = isTopbarEnabled();
+$externalPathsAllowed = isExternalPathsAllowed();
 ?>
 
 <link rel="stylesheet" href="/plugins/custom.smb.shares/css/feedback.css">
@@ -218,6 +208,32 @@ $(function() {
 </dl>
 <blockquote class="inline_help">
     <p>_(When disabled, the plugin will not inject any configuration into Samba. Your share definitions are preserved and will be restored when re-enabled.)_</p>
+</blockquote>
+
+<dl>
+    <dt>_(Show in top menu bar)_:</dt>
+    <dd>
+        <select name="TOPBAR">
+            <option value="enabled" <?=$topbarEnabled ? 'selected' : ''?>>_(Enabled)_</option>
+            <option value="disabled" <?=!$topbarEnabled ? 'selected' : ''?>>_(Disabled)_</option>
+        </select>
+    </dd>
+</dl>
+<blockquote class="inline_help">
+    <p>_(When enabled, SMB Shares appears as a tab in the top navigation bar. When disabled, it moves to Settings then User Utilities. Default: Enabled.)_</p>
+</blockquote>
+
+<dl>
+    <dt>_(Allow paths outside /mnt)_:</dt>
+    <dd>
+        <select name="ALLOW_EXTERNAL_PATHS">
+            <option value="disabled" <?=!$externalPathsAllowed ? 'selected' : ''?>>_(Disabled)_</option>
+            <option value="enabled" <?=$externalPathsAllowed ? 'selected' : ''?>>_(Enabled)_</option>
+        </select>
+    </dd>
+</dl>
+<blockquote class="inline_help">
+    <p>_(When enabled, share paths may point outside /mnt, e.g. /tmp. System directories such as /boot, /etc, and /var remain blocked. Make sure the path has correct permissions; RAM-backed paths like /tmp are cleared on reboot. Default: Disabled.)_</p>
 </blockquote>
 
 <dl>

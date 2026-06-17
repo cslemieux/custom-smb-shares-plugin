@@ -1,0 +1,24 @@
+Menu="Utilities"
+Title="SMB Shares"
+Tag="share-alt"
+Icon="share-alt"
+Cond="(@parse_ini_file('/boot/config/plugins/custom.smb.shares/settings.cfg')['TOPBAR'] ?? 'enabled') === 'disabled'"
+---
+<?php
+/*
+ * Settings -> User Utilities entry for Custom SMB Shares.
+ *
+ * Shown ONLY when the TOPBAR setting is "disabled" (the top-bar tab on
+ * SMBShares.page is then hidden by its own Cond). The share-management UI
+ * lives at /SMBShares with all internal links hardcoded to that URL, so we
+ * keep that page as the single source of truth and redirect here.
+ *
+ * Cond gates menu visibility only (PageBuilder::find_pages); it does not block
+ * direct page access, so /SMBShares remains reachable even while its top-bar
+ * tab is hidden.
+ */
+?>
+<script>location.replace('/SMBShares');</script>
+<div style="padding:20px;">
+    _(Redirecting to)_ <a href="/SMBShares">_(SMB Shares)_</a>&hellip;
+</div>

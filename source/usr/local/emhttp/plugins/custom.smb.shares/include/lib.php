@@ -25,6 +25,115 @@ function isPluginEnabled(?string $configBase = null): bool
     return ($settings['SERVICE'] ?? 'enabled') === 'enabled';
 }
 
+/**
+ * Check whether the SMB Shares entry should appear in the top navigation bar.
+ * Defaults to true (top bar) so existing installs are not disrupted; only an
+ * explicit TOPBAR="disabled" moves the entry to Settings -> User Utilities.
+ * NOTE: the .page Cond headers inline this same logic because they run inside
+ * the WebGUI menu builder (PageBuilder.php) where lib.php is not loaded; keep
+ * this helper and those expressions in sync.
+ * @param string|null $configBase Optional config base path (for testing)
+ * @return bool True if the top-bar tab should show, false if it is disabled
+ */
+function isTopbarEnabled(?string $configBase = null): bool
+{
+    $base = $configBase ?? ConfigRegistry::getConfigBase();
+    $configFile = $base . '/plugins/custom.smb.shares/settings.cfg';
+    if (!file_exists($configFile)) {
+        return true; // Default to top bar
+    }
+    $settings = parse_ini_file($configFile);
+    return ($settings['TOPBAR'] ?? 'enabled') !== 'disabled';
+}
+
+/**
+ * Canonical plugin settings with defaults, merged over settings.cfg.
+ * Centralizes the defaults so the Settings page and tests agree.
+ * @param string|null $configBase Optional config base path (for testing)
+ * @return array<string,string> Settings with defaults applied
+ */
+function loadPluginSettings(?string $configBase = null): array
+{
+    $base = $configBase ?? ConfigRegistry::getConfigBase();
+    $configFile = $base . '/plugins/custom.smb.shares/settings.cfg';
+    $settings = [
+        'SERVICE'      => 'enabled',
+        'BACKUP_COUNT' => '10',
+        'TOPBAR'       => 'enabled',
+        'ALLOW_EXTERNAL_PATHS' => 'disabled',
+    ];
+    if (file_exists($configFile)) {
+        $loaded = parse_ini_file($configFile);
+        if ($loaded) {
+            $settings = array_merge($settings, $loaded);
+        }
+    }
+    return $settings;
+}
+
+/**
+ * Persist plugin settings to settings.cfg as INI key="value" lines.
+ * Writes every key present in $settings, so unrelated keys are preserved
+ * by the caller passing the full merged settings array.
+ * @param array<string,string> $settings Settings to persist
+ * @param string|null $configBase Optional config base path (for testing)
+ * @return bool True on success
+ */
+function savePluginSettings(array $settings, ?string $configBase = null): bool
+{
+    $base = $configBase ?? ConfigRegistry::getConfigBase();
+    $dir = $base . '/plugins/custom.smb.shares';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    $configFile = $dir . '/settings.cfg';
+    $content = '';
+    foreach ($settings as $key => $value) {
+        $content .= "$key=\"$value\"\n";
+    }
+    return file_put_contents($configFile, $content) !== false;
+}
+
+/**
+ * Whether share paths outside /mnt are allowed (opt-in, default false). Issue #22.
+ * Reads ALLOW_EXTERNAL_PATHS from settings.cfg; only an explicit "enabled" turns it on.
+ * @param string|null $configBase Optional config base path (for testing)
+ * @return bool True if external paths are permitted
+ */
+function isExternalPathsAllowed(?string $configBase = null): bool
+{
+    $base = $configBase ?? ConfigRegistry::getConfigBase();
+    $configFile = $base . '/plugins/custom.smb.shares/settings.cfg';
+    if (!file_exists($configFile)) {
+        return false; // Default: only /mnt allowed
+    }
+    $settings = parse_ini_file($configFile);
+    return ($settings['ALLOW_EXTERNAL_PATHS'] ?? 'disabled') === 'enabled';
+}
+
+/**
+ * Whether a canonical logical path is a denied system directory. Issue #22.
+ * Enforced even when external paths are allowed. MUST be called with the
+ * canonicalized (realpath, harness-stripped) path so symlink escapes into
+ * system directories are caught.
+ * @param string $path Canonical logical path
+ * @return bool True if the path is the root or a system directory (or subpath)
+ */
+function isDeniedSystemPath(string $path): bool
+{
+    $p = rtrim($path, '/');
+    if ($p === '') {
+        return true; // root '/'
+    }
+    $denied = ['/boot', '/etc', '/proc', '/sys', '/dev', '/var', '/usr', '/root', '/bin', '/sbin', '/lib', '/lib64'];
+    foreach ($denied as $d) {
+        if ($p === $d || strpos($p, $d . '/') === 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function logError(string $message): void
 {
     syslog(LOG_ERR, "custom.smb.shares: $message");
@@ -73,9 +182,14 @@ function validateShare(array &$data): array
     }
 
     $pathPattern = TestModeDetector::getPathPattern();
+    $allowExternal = isExternalPathsAllowed();
 
-    if (empty($data['path']) || !preg_match($pathPattern, $data['path'])) {
+    if (empty($data['path'])) {
         $errors[] = 'Path must start with /mnt/';
+    } elseif (!$allowExternal && !preg_match($pathPattern, $data['path'])) {
+        $errors[] = 'Path must start with /mnt/';
+    } elseif ($allowExternal && strpos($data['path'], '/') !== 0) {
+        $errors[] = 'Path must be an absolute path (starting with /)';
     } else {
         // Resolve path (prepends harness root in test mode if needed)
         $checkPath = TestModeDetector::resolvePath($data['path']);
@@ -87,8 +201,16 @@ function validateShare(array &$data): array
         if ($realPath === false) {
             $errors[] = 'Path does not exist: ' . $data['path'];
         } else {
-            if (!TestModeDetector::isValidMntPath($realPath)) {
+            // Logical (harness-stripped) canonical path: used for the system
+            // denylist and for storage. Checking the canonical path means a
+            // symlink under /mnt that points at a system dir is still rejected.
+            $logicalPath = TestModeDetector::stripHarnessRoot($realPath);
+            $isMnt = TestModeDetector::isValidMntPath($realPath);
+
+            if (!$allowExternal && !$isMnt) {
                 $errors[] = 'Invalid path: must be under /mnt/';
+            } elseif ($allowExternal && !$isMnt && isDeniedSystemPath($logicalPath)) {
+                $errors[] = 'Invalid path: system directories cannot be shared (e.g. /boot, /etc, /var)';
             } elseif (!is_dir($realPath)) {
                 $errors[] = 'Path is not a directory: ' . $data['path'];
             } elseif (!is_writable($realPath)) {
@@ -96,7 +218,7 @@ function validateShare(array &$data): array
             } else {
                 // Store the resolved path to prevent TOCTOU attacks
                 // In test mode, strip the harness root prefix for storage
-                $data['path'] = TestModeDetector::stripHarnessRoot($realPath);
+                $data['path'] = $logicalPath;
             }
         }
     }
