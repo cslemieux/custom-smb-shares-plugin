@@ -86,7 +86,7 @@ class TestModeDetector
         } else {
             // Fallback: walk up until we find /mnt/
             $candidate = dirname($configBase);
-            while ($candidate !== '/' && $candidate !== '') {
+            while ($candidate !== '/' && $candidate !== '.') {
                 if (is_dir($candidate . '/mnt')) {
                     self::$harnessRoot = $candidate;
                     return self::$harnessRoot;
