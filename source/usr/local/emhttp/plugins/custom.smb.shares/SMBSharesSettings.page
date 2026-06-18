@@ -6,9 +6,11 @@ require_once '/usr/local/emhttp/plugins/custom.smb.shares/include/lib.php';
 
 // Load settings (defaults merged with settings.cfg)
 $settings = loadPluginSettings();
+$topbarChanged = false;
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $prevTopbar = $settings['TOPBAR'] ?? 'enabled';
     $settings['SERVICE'] = $_POST['SERVICE'] ?? 'enabled';
     $settings['BACKUP_COUNT'] = max(1, min(50, (int)($_POST['BACKUP_COUNT'] ?? 10)));
     $settings['TOPBAR'] = (($_POST['TOPBAR'] ?? 'enabled') === 'disabled') ? 'disabled' : 'enabled';
@@ -16,6 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Save settings
     savePluginSettings($settings);
+
+    // If the top-bar placement changed, force a full GUI reload below.
+    // Unraid's PageBuilder builds the top nav BEFORE this handler runs, so the
+    // current self-POST response still shows the old menu; only a fresh GET
+    // rebuilds it. (Issue #21 follow-up: the self-POST alone leaves a stale
+    // SMB Shares tab until a manual hard refresh.)
+    $topbarChanged = topbarPlacementChanged($prevTopbar, $settings['TOPBAR']);
     
     // If disabling, we don't need to do anything special
     // If enabling, regenerate config
@@ -35,6 +44,7 @@ $backupCount = $settings['BACKUP_COUNT'];
 $topbarEnabled = isTopbarEnabled();
 $externalPathsAllowed = isExternalPathsAllowed();
 ?>
+<?= topbarReloadScript($topbarChanged) ?>
 
 <link rel="stylesheet" href="/plugins/custom.smb.shares/css/feedback.css">
 <script src="/plugins/custom.smb.shares/js/feedback.js"></script>

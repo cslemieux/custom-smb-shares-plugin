@@ -61,7 +61,6 @@ COMPREHENSIVE-TESTING-PLAN.md
 
 # Development/debug files
 cleanup-harness.sh
-composer.lock
 docs-mirror-urls.log
 file-modification-best-practices.txt
 kiro-critical-reminders.txt
@@ -74,8 +73,12 @@ test-*.html
 verify-*.php
 verify-*.sh
 
-# AI assistant context (not for public release)
-.kiro/
+# AI assistant context (.kiro/) is TRACKED in the private/hub repos and is
+# stripped from PUBLIC releases by scripts/release-to-public.sh
+# (`git reset HEAD -- .kiro/`), NOT by this gitignore. Do NOT re-add a
+# wholesale `.kiro/` ignore — that would un-track specs/memory/steering and
+# defeat the release-script exclusion. Only ephemeral/per-PID artifacts under
+# .kiro/ are ignored (see "Kiro session artifacts" below).
 
 # Unraid docs mirror (large, not needed for plugin)
 unraid-docs-official/

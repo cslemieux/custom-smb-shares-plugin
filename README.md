@@ -199,6 +199,9 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.06.18
+- Fix: **Top menu bar now updates immediately** when toggling "Show in top menu bar" (issue #21 follow-up). Previously the SMB Shares tab lingered in the top navigation until a manual browser hard refresh; the Settings page now forces Unraid's menu to rebuild on change.
+
 ### v2026.06.17
 - Add: **Configurable menu placement** (issue #21 — thanks dc911x). New "Show in top menu bar" setting: keep SMB Shares as a top-bar tab (default — unchanged) or move it to **Settings → User Utilities** like most plugins.
 - Add: **Allow share paths outside /mnt** (issue #22 — thanks johnoldiges). New opt-in setting (default off) permits share paths such as `/tmp`. System directories (`/boot`, `/etc`, `/var`, …) are always blocked even when enabled, and the check resolves symlinks so they cannot be used to escape the denylist.

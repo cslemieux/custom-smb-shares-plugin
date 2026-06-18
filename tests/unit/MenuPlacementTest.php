@@ -82,4 +82,56 @@ class MenuPlacementTest extends TestCase
         file_put_contents($this->configFile, "SERVICE=disabled\nTOPBAR=enabled\n");
         $this->assertTrue(isTopbarEnabled($this->tempDir));
     }
+
+    // --- topbarPlacementChanged() (issue #21 follow-up: stale-menu reload) ---
+
+    /** Toggling enabled -> disabled is a change. */
+    public function testPlacementChangedEnabledToDisabled(): void
+    {
+        $this->assertTrue(topbarPlacementChanged('enabled', 'disabled'));
+    }
+
+    /** Toggling disabled -> enabled is a change. */
+    public function testPlacementChangedDisabledToEnabled(): void
+    {
+        $this->assertTrue(topbarPlacementChanged('disabled', 'enabled'));
+    }
+
+    /** Same value (either way) is not a change. */
+    public function testPlacementUnchangedSameValue(): void
+    {
+        $this->assertFalse(topbarPlacementChanged('enabled', 'enabled'));
+        $this->assertFalse(topbarPlacementChanged('disabled', 'disabled'));
+    }
+
+    /** Noise/unknown values normalize to 'enabled', so '' vs 'enabled' is NOT a change. */
+    public function testPlacementChangeNormalizesNoise(): void
+    {
+        $this->assertFalse(topbarPlacementChanged('', 'enabled'));
+        $this->assertFalse(topbarPlacementChanged('enabled', 'garbage'));
+        $this->assertFalse(topbarPlacementChanged('garbage', ''));
+        // But disabled vs any non-disabled IS a change.
+        $this->assertTrue(topbarPlacementChanged('disabled', 'garbage'));
+    }
+
+    // --- topbarReloadScript() ---
+
+    /** No change -> no script emitted. */
+    public function testReloadScriptEmptyWhenUnchanged(): void
+    {
+        $this->assertSame('', topbarReloadScript(false));
+    }
+
+    /**
+     * Change -> a top-level GET navigation script (NOT reload(), to avoid the
+     * browser's "Confirm Form Resubmission" prompt after the settings POST).
+     */
+    public function testReloadScriptIsGetNavigationWhenChanged(): void
+    {
+        $script = topbarReloadScript(true);
+        $this->assertStringContainsString('<script>', $script);
+        $this->assertStringContainsString('window.top.location', $script);
+        $this->assertStringContainsString('pathname', $script);
+        $this->assertStringNotContainsString('reload(', $script);
+    }
 }

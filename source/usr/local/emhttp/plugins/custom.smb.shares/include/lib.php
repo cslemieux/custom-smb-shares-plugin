@@ -47,6 +47,40 @@ function isTopbarEnabled(?string $configBase = null): bool
 }
 
 /**
+ * Whether the top-bar placement changed between two TOPBAR values.
+ * Normalizes each to the canonical 'enabled'/'disabled' first, so noise like
+ * '' or an unknown value vs 'enabled' is NOT treated as a change.
+ * Issue #21 follow-up: drives the post-save GUI reload on the Settings page.
+ * @param string $previous Prior TOPBAR value
+ * @param string $next New TOPBAR value
+ * @return bool True if the effective placement changed
+ */
+function topbarPlacementChanged(string $previous, string $next): bool
+{
+    $normalize = static function (string $value): string {
+        return $value === 'disabled' ? 'disabled' : 'enabled';
+    };
+    return $normalize($previous) !== $normalize($next);
+}
+
+/**
+ * Inline script that forces a full top-level GET navigation so Unraid's
+ * PageBuilder rebuilds the top nav from the new TOPBAR setting. Returns ''
+ * when nothing changed. Uses a GET navigation (location = pathname) rather
+ * than reload() to avoid the browser's form-resubmission prompt after the
+ * settings POST. Issue #21 follow-up.
+ * @param bool $changed Whether the top-bar placement changed
+ * @return string Script tag, or '' when no reload is needed
+ */
+function topbarReloadScript(bool $changed): string
+{
+    if (!$changed) {
+        return '';
+    }
+    return "<script>window.top.location = window.top.location.pathname;</script>\n";
+}
+
+/**
  * Canonical plugin settings with defaults, merged over settings.cfg.
  * Centralizes the defaults so the Settings page and tests agree.
  * @param string|null $configBase Optional config base path (for testing)
