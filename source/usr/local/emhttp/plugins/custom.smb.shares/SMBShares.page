@@ -173,8 +173,7 @@ $(function() {
     // Initialize toggle switches
     $('.share-toggle').switchButton({
         on_label: '',
-        off_label: '',
-        checked: function() { return $(this).is(':checked'); }
+        off_label: ''
     }).on('change', function() {
         var $toggle = $(this);
         var shareName = $toggle.data('share');
