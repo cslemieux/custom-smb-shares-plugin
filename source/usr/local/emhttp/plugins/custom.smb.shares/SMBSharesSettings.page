@@ -6,37 +6,34 @@ require_once '/usr/local/emhttp/plugins/custom.smb.shares/include/lib.php';
 
 // Load settings (defaults merged with settings.cfg)
 $settings = loadPluginSettings();
-$topbarChanged = false;
 
-// Handle form submission
+/* Handle form submission. */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $prevTopbar = $settings['TOPBAR'] ?? 'enabled';
-    $settings['SERVICE'] = $_POST['SERVICE'] ?? 'enabled';
-    $settings['BACKUP_COUNT'] = max(1, min(50, (int)($_POST['BACKUP_COUNT'] ?? 10)));
-    $settings['TOPBAR'] = (($_POST['TOPBAR'] ?? 'enabled') === 'disabled') ? 'disabled' : 'enabled';
-    $settings['ALLOW_EXTERNAL_PATHS'] = (($_POST['ALLOW_EXTERNAL_PATHS'] ?? 'disabled') === 'enabled') ? 'enabled' : 'disabled';
-    
-    // Save settings
-    savePluginSettings($settings);
 
-    // If the top-bar placement changed, force a full GUI reload below.
-    // Unraid's PageBuilder builds the top nav BEFORE this handler runs, so the
-    // current self-POST response still shows the old menu; only a fresh GET
-    // rebuilds it. (Issue #21 follow-up: the self-POST alone leaves a stale
-    // SMB Shares tab until a manual hard refresh.)
-    $topbarChanged = topbarPlacementChanged($prevTopbar, $settings['TOPBAR']);
-    
-    // If disabling, we don't need to do anything special
-    // If enabling, regenerate config
-    if ($settings['SERVICE'] === 'enabled') {
-        require_once '/usr/local/emhttp/plugins/custom.smb.shares/include/lib.php';
-        $shares = loadShares();
-        $config = generateSambaConfig($shares);
-        $pluginConf = '/boot/config/plugins/custom.smb.shares/smb-custom.conf';
-        file_put_contents($pluginConf, $config);
-        ensureSambaInclude();
-        reloadSamba();
-    }
+	/* Normalize settings. */
+	$settings['SERVICE']				= (($_POST['SERVICE'] ?? 'enabled') === 'disabled') ? 'disabled' : 'enabled';
+	$settings['BACKUP_COUNT']			= max(1, min(50, (int)($_POST['BACKUP_COUNT'] ?? 10)));
+	$settings['TOPBAR']					= (($_POST['TOPBAR'] ?? 'enabled') === 'disabled') ? 'disabled' : 'enabled';
+	$settings['ALLOW_EXTERNAL_PATHS']	= (($_POST['ALLOW_EXTERNAL_PATHS'] ?? 'disabled') === 'enabled') ? 'enabled' : 'disabled';
+
+	/* Save settings. */
+	savePluginSettings($settings);
+
+	/* Regenerate the Samba configuration when enabled. */
+	if ($settings['SERVICE'] === 'enabled') {
+		$shares		= loadShares();
+		$config		= generateSambaConfig($shares);
+		$pluginConf	= '/boot/config/plugins/custom.smb.shares/smb-custom.conf';
+
+		file_put_contents($pluginConf, $config);
+
+		ensureSambaInclude();
+		reloadSamba();
+	}
+
+	/* Reload the current content page using a normal GET request. */
+	echo "<script>location.href = location.pathname;</script>\n";
+	exit;
 }
 
 $enabled = $settings['SERVICE'] === 'enabled';
@@ -44,7 +41,6 @@ $backupCount = $settings['BACKUP_COUNT'];
 $topbarEnabled = isTopbarEnabled();
 $externalPathsAllowed = isExternalPathsAllowed();
 ?>
-<?= topbarReloadScript($topbarChanged) ?>
 
 <link rel="stylesheet" href="/plugins/custom.smb.shares/css/feedback.css">
 <script src="/plugins/custom.smb.shares/js/feedback.js"></script>
@@ -58,11 +54,6 @@ $externalPathsAllowed = isExternalPathsAllowed();
 </style>
 
 <script>
-function applySettings() {
-    $('#applyBtn').val('_(Applying...)_').prop('disabled', true);
-    $('form').submit();
-}
-
 function loadBackups() {
     $.get('/plugins/custom.smb.shares/api.php?action=listBackups', function(response) {
         if (response.success) {
@@ -260,7 +251,7 @@ $(function() {
     <dt>&nbsp;</dt>
     <dd>
         <span class="inline-flex flex-row items-center gap-2">
-            <input type="submit" id="applyBtn" value="_(Apply)_" onclick="applySettings()">
+		<input type="submit" id="applyBtn" value="_(Apply)_">
             <input type="button" value="_(Done)_" onclick="location.href='/SMBShares'">
         </span>
     </dd>
