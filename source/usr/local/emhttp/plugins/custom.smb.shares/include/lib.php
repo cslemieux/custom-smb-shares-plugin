@@ -916,29 +916,29 @@ function reloadSamba(): array
         return ['success' => false, 'error' => 'Invalid Samba configuration: ' . implode("\n", $output)];
     }
 
-	/* Restart the recycle bin to adjust for changes. */
-	/* If the recycle bin plugin is installed and running, reload the recycle bin. */
-	$recycle_script = "/usr/local/emhttp/plugins/recycle.bin/scripts/rc.recycle.bin";
+    /* Restart the recycle bin to adjust for changes. */
+    /* If the recycle bin plugin is installed and running, reload the recycle bin. */
+    $recycle_script = "/usr/local/emhttp/plugins/recycle.bin/scripts/rc.recycle.bin";
 
-	if ((is_executable($recycle_script)) && (is_file("/var/run/recycle.bin.pid"))) {
-		/* The recycle bin will reload samba. */
+    if ((is_executable($recycle_script)) && (is_file("/var/run/recycle.bin.pid"))) {
+        /* The recycle bin will reload samba. */
 
-		$output = [];
-		exec(escapeshellarg($recycle_script)." reload 2>&1", $output, $ret);
+        $output = [];
+        exec(escapeshellarg($recycle_script) . " reload 2>&1", $output, $ret);
 
-		if ($ret !== 0) {
-			return ['success' => false, 'error' => implode("\n", $output)];
-		}
-	} else {
-		/* If there is no recycle bin, then just reload samba. */
+        if ($ret !== 0) {
+            return ['success' => false, 'error' => implode("\n", $output)];
+        }
+    } else {
+        /* If there is no recycle bin, then just reload samba. */
 
-		$output = [];
-		exec(escapeshellarg($smbcontrol)." all reload-config 2>&1", $output, $ret);
+        $output = [];
+        exec(escapeshellarg($smbcontrol) . " all reload-config 2>&1", $output, $ret);
 
-		if ($ret !== 0) {
-			return ['success' => false, 'error' => implode("\n", $output)];
-		}
-	}
+        if ($ret !== 0) {
+            return ['success' => false, 'error' => implode("\n", $output)];
+        }
+    }
 
     return ['success' => true, 'error' => ''];
 }
