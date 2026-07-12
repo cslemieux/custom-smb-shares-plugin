@@ -44,6 +44,7 @@ $sambaRunning = $sambaStatus['running'];
 .feature-icons i[title] { cursor: help; }
 </style>
 
+<?php if ($var['mdState']=="STARTED"):?>
 <?php if (!$pluginEnabled): ?>
 <div class="disabled-banner">
     <i class="fa fa-exclamation-triangle"></i>
@@ -152,6 +153,9 @@ $sambaRunning = $sambaStatus['running'];
 </tbody>
 </table>
 </div>
+<?else:?>
+	<p>_(Array is stopped)_!</p>
+<?endif;?>
 
 <div style="display:flex;justify-content:flex-end;margin-top:12px;">
     <input type="button" value="_(Add Share)_" onclick="location.href='/SMBSharesAdd'">
