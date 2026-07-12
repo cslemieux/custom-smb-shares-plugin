@@ -1,0 +1,20 @@
+#!/usr/bin/php
+<?php
+
+require_once('/usr/local/emhttp/plugins/custom.smb.shares/include/lib.php');
+
+$configFile = ConfigRegistry::getSmbCustomConfPath();
+
+/* Remove Custom SMB Shares when the array is shutting down. */
+if (file_exists($configFile)) {
+	file_put_contents($configFile, "");
+}
+
+// Reload Samba to pick up the changes
+$result = reloadSamba();
+if ($result['success']) {
+    logInfo("Custom SMB Shares removed on array stop");
+} else {
+    logError("Failed to reload Samba on array stop: " . $result['error']);
+}
+?>
