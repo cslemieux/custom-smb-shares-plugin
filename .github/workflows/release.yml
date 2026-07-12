@@ -1,9 +1,12 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  # Manual-only. Releases are cut via scripts/release-to-public.sh + `gh release create`,
+  # which builds the .txz locally and sets the matching MD5 in custom.smb.shares.plg.
+  # A tag-triggered auto-release here duplicated that (release "already_exists" -> failed
+  # runs + failure emails) and would attach a differently-hashed CI-built .txz, breaking
+  # the .plg MD5. Left as workflow_dispatch so it can still be run by hand if ever needed.
+  workflow_dispatch:
 
 jobs:
   release:
