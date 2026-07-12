@@ -21,14 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 	/* Regenerate the Samba configuration when enabled. */
 	if ($settings['SERVICE'] === 'enabled') {
-		$shares		= loadShares();
-		$config		= generateSambaConfig($shares);
-		$pluginConf	= '/boot/config/plugins/custom.smb.shares/smb-custom.conf';
-
-		file_put_contents($pluginConf, $config);
-
-		ensureSambaInclude();
-		reloadSamba();
+		rebuildSambaConfig();
 	}
 
 	/* Reload the current content page using a normal GET request. */

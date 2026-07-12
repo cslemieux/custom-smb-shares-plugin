@@ -32,84 +32,46 @@ class ConfigRegistry
     public const PATH_PREFIX = '/mnt/';
     public const BACKUP_FILENAME_PATTERN = '/^shares_[\d_-]+\.json$/';
 
+    // Samba runtime config paths (absolute, production)
+    public const SMB_CUSTOM_CONF = '/etc/samba/smb-custom.conf';
+    public const SMB_CONF = '/etc/samba/smb.conf';
+
     /**
      * Override config base path (used in tests)
      */
     private static ?string $configBase = null;
 
-    /**
-     * Get the configuration base path
-     *
-     * Priority:
-     * 1. Explicitly set value (for tests)
-     * 2. CONFIG_BASE constant (if defined)
-     * 3. Default '/boot/config' (production fallback)
-     *
-     * @return string The configuration base path
-     */
     public static function getConfigBase(): string
     {
-        // Test override takes precedence
         if (self::$configBase !== null) {
             return self::$configBase;
         }
-
-        // Fall back to constant (production)
         if (defined('CONFIG_BASE')) {
             return CONFIG_BASE;
         }
-
-        // Ultimate fallback
         return '/boot/config';
     }
 
-    /**
-     * Set the configuration base path
-     *
-     * This is primarily used in tests to set up isolated environments.
-     *
-     * @param string $path The config base path to use
-     */
     public static function setConfigBase(string $path): void
     {
         self::$configBase = $path;
     }
 
-    /**
-     * Reset the configuration to use default (constant or fallback)
-     *
-     * Call this in test tearDown to ensure clean state for next test.
-     */
     public static function reset(): void
     {
         self::$configBase = null;
     }
 
-    /**
-     * Check if a custom config base is set
-     *
-     * @return bool True if setConfigBase() was called and not reset
-     */
     public static function isOverridden(): bool
     {
         return self::$configBase !== null;
     }
 
-    /**
-     * Get the plugin config directory path
-     *
-     * @return string Path to plugins/custom.smb.shares/
-     */
     public static function getPluginConfigDir(): string
     {
         return self::getConfigBase() . '/plugins/custom.smb.shares';
     }
 
-    /**
-     * Get the shares.json file path
-     *
-     * @return string Path to shares.json
-     */
     public static function getSharesFilePath(): string
     {
         return self::getPluginConfigDir() . '/shares.json';
@@ -117,6 +79,9 @@ class ConfigRegistry
 
     /**
      * Get the smb-extra.conf file path
+     *
+     * Used by migration to locate and remove the old include directive.
+     * Points to the flash-based extra conf, not the runtime RAM path.
      *
      * @return string Path to smb-extra.conf
      */
@@ -126,12 +91,51 @@ class ConfigRegistry
     }
 
     /**
-     * Get the plugin's smb-custom.conf file path
+     * Get the plugin's smb-custom.conf file path (RAM / runtime location)
+     *
+     * Production: /etc/samba/smb-custom.conf
+     * Test mode:  <harnessRoot>/etc/samba/smb-custom.conf
      *
      * @return string Path to smb-custom.conf
      */
     public static function getSmbCustomConfPath(): string
     {
-        return self::getPluginConfigDir() . '/smb-custom.conf';
+        return self::withHarnessPrefix(self::SMB_CUSTOM_CONF);
+    }
+
+    /**
+     * Get the main smb.conf file path (RAM / runtime location)
+     *
+     * Production: /etc/samba/smb.conf
+     * Test mode:  <harnessRoot>/etc/samba/smb.conf
+     *
+     * @return string Path to smb.conf
+     */
+    public static function getSmbConfPath(): string
+    {
+        return self::withHarnessPrefix(self::SMB_CONF);
+    }
+
+    /**
+     * Prepend the harness root to an absolute path when running in test mode.
+     *
+     * This is a simple prefix-only helper intentionally distinct from
+     * TestModeDetector::resolvePath(), which has /tmp/ special-casing logic
+     * designed for share paths under /mnt/. Samba config paths like
+     * /etc/samba/smb.conf must always be prefixed in test mode without any
+     * special-casing -- hence the dedicated helper here.
+     *
+     * In production (not test mode) the path is returned unchanged.
+     *
+     * @param string $absolute An absolute path (must begin with /)
+     * @return string The path, prefixed with harnessRoot in test mode
+     */
+    private static function withHarnessPrefix(string $absolute): string
+    {
+        if (!TestModeDetector::isTestMode()) {
+            return $absolute;
+        }
+        $harnessRoot = TestModeDetector::getHarnessRoot();
+        return $harnessRoot !== '' ? $harnessRoot . $absolute : $absolute;
     }
 }

@@ -121,6 +121,41 @@ git fetch public
 PUBLIC_HEAD=$(git rev-parse public/main)
 echo "Public repo HEAD: $PUBLIC_HEAD"
 
+# Guard against silent reverts — CONTENT-based, NOT SHA/commit ancestry.
+# In this squash-release model, public/main's squashed releases + directly-merged
+# community/dependabot PRs never share SHAs OR patch-ids with private's
+# per-feature commits, so `git rev-list HEAD..public/main` and `git cherry` both
+# MASSIVELY over-count — they flag every already-reconciled release/PR as a
+# phantom "revert" (e.g. 48 SHA-divergent / 34 patch-divergent commits whose
+# content is fully present in HEAD). merge-tree also just yields conflict-marker
+# noise on feature-reworked files. The ACTUAL revert risk is CONTENT LOSS:
+# would taking HEAD's tree DELETE a file that public/main has? A whole-file
+# deletion is the concrete signal that community content would be reverted
+# (this is what happened to dependabot PRs #17/#18, reopened as #24/#25).
+# .kiro/ is intentionally private (excluded from the release) so it is ignored.
+REVERTED_FILES=$(git diff --diff-filter=D --name-only public/main HEAD -- . ':(exclude).kiro' ':(exclude).kiro/**' 2>/dev/null)
+if [ -n "$REVERTED_FILES" ]; then
+    echo -e "${RED}Error: releasing HEAD's tree would DELETE files that exist on public/main:${NC}"
+    echo "$REVERTED_FILES"
+    echo ""
+    echo "These files would be REVERTED off the public repo. Reconcile their"
+    echo "content into private HEAD first, then re-run the release."
+    # In auto-yes mode, default to ABORT: an unattended release must never
+    # silently revert public work. Require an interactive override.
+    if [ "$AUTO_YES" = true ]; then REPLY=n; else read -p "Release anyway (WILL delete the above)? (y/N) " -n 1 -r; fi
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Aborted. Reconcile deleted-file reverts, then re-run."
+        exit 1
+    fi
+fi
+# In-file reverts (e.g. CI action-version DOWNGRADES — the other #17/#18 vector)
+# are not whole-file deletions, so surface the full public->HEAD file-change set
+# for operator review before the squash rebuilds public's tree.
+echo -e "${GREEN}Content check: no public files would be deleted.${NC}"
+echo "Files this release changes on public/main (review for unintended reverts/downgrades):"
+git diff --stat public/main HEAD -- . ':(exclude).kiro' ':(exclude).kiro/**' | tail -30
+
 # Check if there are new commits to release
 COMMITS_AHEAD=$(git rev-list --count public/main..HEAD)
 if [ "$COMMITS_AHEAD" -eq 0 ]; then
@@ -174,8 +209,13 @@ echo -e "${GREEN}Creating tag $VERSION on public...${NC}"
 git tag -a "$VERSION" -m "$MESSAGE"
 git push public "$VERSION"
 
-# Return to main branch
-git checkout main
+# Return to main branch.
+# Force checkout: .kiro/ is tracked on main but excluded from the release-temp
+# commit (see the .kiro/ exclusion above), so it lingers as untracked here and a
+# plain `git checkout main` aborts with "untracked working tree files would be
+# overwritten by checkout". release-temp is a throwaway branch whose squash commit
+# is already pushed to public, so discarding its working state with -f is safe.
+git checkout -f main
 git branch -D release-temp
 
 # Also push to private to keep in sync

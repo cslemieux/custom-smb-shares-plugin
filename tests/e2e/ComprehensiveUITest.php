@@ -2188,6 +2188,163 @@ JS;
         $this->assertNotContains('PreImportShare', $names, 'PreImportShare must NOT be in persisted state');
     }
 
+
+    // ==================== REQ-UD-03: UD PATH GRANDFATHER WARNING UI TESTS ====================
+
+    /**
+     * REQ-UD-03 render-level E2E test (AC-UD-03.1 + AC-UD-03.2 + AC-UD-03.3).
+     *
+     * Fidelity: L2 — runs real PHP rendering through the test harness (full
+     * HTTP round-trip via the embedded PHP server), exercising the actual
+     * SMBShares.page foreach loop and ShareForm.php isUdManagedPath() branch.
+     * Headless Chrome asserts on the live DOM, not on PHP source inspection.
+     *
+     * What this verifies:
+     *   AC-UD-03.1  A share with path under /mnt/disks renders a .ud-warning-badge
+     *               element in the share-list row.
+     *   AC-UD-03.2  The edit page for that share renders a UD grandfather notice
+     *               (div with border-left style or the orange-text class) in the DOM.
+     *   AC-UD-03.3  A share on /mnt/user shows NO .ud-warning-badge in its row.
+     */
+    public function testUdWarningBadgeRendersForUdPathShare()
+    {
+        // ── Seed fixtures ──────────────────────────────────────────────────────
+        // Grandfathered UD-path share (path under /mnt/disks)
+        $udShareName = 'UdGrandfathered';
+        $udPath      = '/mnt/disks/usbdrive1/media';
+
+        // Normal share (path under /mnt/user) — must show NO badge
+        $normalShareName = 'NormalUserShare';
+        $normalPath      = '/mnt/user/normalmedia';
+
+        // Create the directories in the harness virtual filesystem
+        $this->createShareDirectory($udPath);
+        $this->createShareDirectory($normalPath);
+
+        // Bypass the UD block in add.php by writing shares.json directly —
+        // these are "grandfathered" shares that already exist on disk.
+        $configDir = $this->harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares';
+        if (!is_dir($configDir)) {
+            mkdir($configDir, 0755, true);
+        }
+        $fixtures = [
+            [
+                'name'      => $udShareName,
+                'path'      => $udPath,
+                'comment'   => 'Grandfathered UD share',
+                'enabled'   => true,
+                'export'    => 'e',
+                'security'  => 'public',
+                'browseable' => 'yes',
+            ],
+            [
+                'name'      => $normalShareName,
+                'path'      => $normalPath,
+                'comment'   => 'Normal user share',
+                'enabled'   => true,
+                'export'    => 'e',
+                'security'  => 'public',
+                'browseable' => 'yes',
+            ],
+        ];
+        file_put_contents($configDir . '/shares.json', json_encode($fixtures, JSON_PRETTY_PRINT));
+
+        // ── AC-UD-03.1: Share list — UD-path row shows .ud-warning-badge ──────
+        self::$sharedDriver->get($this->baseUrl . '/Settings/SMBShares');
+        $this->waitForPageReady();
+
+        // Wait for both shares to appear in the rendered table
+        self::$sharedDriver->wait(10)->until(function ($driver) use ($udShareName) {
+            return strpos($driver->getPageSource(), $udShareName) !== false;
+        });
+
+        $this->screenshot('ud-warning-01-shares-list');
+
+        // The UD-path row MUST contain a .ud-warning-badge element
+        $udBadgeCount = self::$sharedDriver->executeScript(
+            "return \$('tr').filter(function() { return \$(this).text().indexOf(" .
+            json_encode($udShareName) . ") !== -1; }).find('.ud-warning-badge').length;"
+        );
+        $this->assertGreaterThan(
+            0,
+            $udBadgeCount,
+            'AC-UD-03.1: Share row for a /mnt/disks path MUST render a .ud-warning-badge element ' .
+            '— the PHP branch in SMBShares.page (isUdManagedPath check) did not fire.'
+        );
+
+        // The normal /mnt/user row MUST NOT contain a .ud-warning-badge
+        $normalBadgeCount = self::$sharedDriver->executeScript(
+            "return \$('tr').filter(function() { return \$(this).text().indexOf(" .
+            json_encode($normalShareName) . ") !== -1; }).find('.ud-warning-badge').length;"
+        );
+        $this->assertEquals(
+            0,
+            $normalBadgeCount,
+            'AC-UD-03.3: Share row for a /mnt/user path MUST NOT render a .ud-warning-badge element.'
+        );
+
+        $this->assertNoJSErrors();
+
+        // ── AC-UD-03.2: Edit page — UD-path share shows grandfather notice ────
+        $encodedName = urlencode($udShareName);
+        self::$sharedDriver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=' . $encodedName);
+        $this->waitForPageReady();
+
+        // Wait for the form to be present
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'), 15);
+
+        $this->screenshot('ud-warning-02-edit-page');
+
+        // The UD grandfather notice block must be in the DOM.
+        // ShareForm.php renders a <div> with border-left:4px solid #f0ad4e when
+        // isUdManagedPath($share['path']) is true on the edit page.
+        // We look for either the styled div or the orange-text warning text itself.
+        $noticeRendered = self::$sharedDriver->executeScript(
+            "return (" .
+            // div with the border-left UD notice styling
+            "  \$('div[style*=\"border-left\"]').filter(function() {" .
+            "    return \$(this).find('.orange-text').length > 0;" .
+            "  }).length > 0" .
+            ") || (" .
+            // or the warning text contains the UD keyword
+            "  \$('.orange-text').filter(function() {" .
+            "    return \$(this).closest('div').text().indexOf('Unassigned Devices') !== -1;" .
+            "  }).length > 0" .
+            ");"
+        );
+
+        $this->assertTrue(
+            (bool) $noticeRendered,
+            'AC-UD-03.2: Edit page for a /mnt/disks share MUST render the UD grandfather notice ' .
+            'block (div with border-left / orange-text explaining the UD risk). ' .
+            'Check that ShareForm.php isUdManagedPath() branch fires for this path.'
+        );
+
+        $this->assertNoJSErrors();
+
+        // ── AC-UD-03.2 negative: edit page for /mnt/user shows NO such notice ──
+        $encodedNormal = urlencode($normalShareName);
+        self::$sharedDriver->get($this->baseUrl . '/Settings/SMBSharesUpdate?name=' . $encodedNormal);
+        $this->waitForPageReady();
+        $this->waitForElement(WebDriverBy::cssSelector('input[name="name"]'), 15);
+
+        $this->screenshot('ud-warning-03-edit-normal-share');
+
+        $normalNoticeRendered = self::$sharedDriver->executeScript(
+            "return \$('div[style*=\"border-left\"]').filter(function() {" .
+            "  return \$(this).find('.orange-text').length > 0 && " .
+            "         \$(this).text().indexOf('Unassigned Devices') !== -1;" .
+            "}).length > 0;"
+        );
+
+        $this->assertFalse(
+            (bool) $normalNoticeRendered,
+            'AC-UD-03.3 (edit page): Edit page for a /mnt/user share MUST NOT render the UD notice block.'
+        );
+
+        $this->assertNoJSErrors();
+    }
+
     private function waitForModalClose($timeout = 10)
     {
         // Wait for navigation back to main shares page

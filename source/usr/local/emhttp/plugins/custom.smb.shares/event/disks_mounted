@@ -2,7 +2,7 @@
 <?php
 /**
  * Custom SMB Shares - Array Start Event Handler
- * 
+ *
  * Runs when the Unraid array is mounted (disks_mounted event).
  * Ensures our Samba configuration is properly set up.
  */
@@ -15,40 +15,11 @@ if (!isPluginEnabled()) {
     exit(0);
 }
 
-$pluginDir = '/boot/config/plugins/custom.smb.shares';
-$sharesFile = $pluginDir . '/shares.json';
-$configFile = $pluginDir . '/smb-custom.conf';
-$smbExtraConf = '/boot/config/smb-extra.conf';
-$includeLine = "include = $configFile";
-
-// Ensure plugin directory exists
-if (!is_dir($pluginDir)) {
-    mkdir($pluginDir, 0755, true);
-}
-
-// Load shares
-$shares = [];
-if (file_exists($sharesFile)) {
-    $content = file_get_contents($sharesFile);
-    $shares = json_decode($content, true) ?: [];
-}
-
-// Generate Samba config from shares
-$config = generateSambaConfig($shares);
-file_put_contents($configFile, $config);
-
-// Ensure include directive exists in smb-extra.conf
-$smbExtra = @file_get_contents($smbExtraConf) ?: '';
-if (strpos($smbExtra, $includeLine) === false) {
-    $addition = "\n# Custom SMB Shares plugin\n$includeLine\n";
-    file_put_contents($smbExtraConf, $smbExtra . $addition);
-    logInfo("Added include directive to smb-extra.conf");
-}
-
-// Reload Samba to pick up any changes
-$result = reloadSamba();
+// Delegate share loading, config generation, include injection, and reload
+// to rebuildSambaConfig() — no hardcoded paths here.
+$result = rebuildSambaConfig();
 if ($result['success']) {
-    logInfo("Custom SMB Shares initialized on array start (" . count($shares) . " shares)");
+    logInfo("Custom SMB Shares initialized on array start");
 } else {
-    logError("Failed to reload Samba on array start: " . $result['error']);
+    logError("Failed to initialize Custom SMB Shares on array start: " . $result['error']);
 }

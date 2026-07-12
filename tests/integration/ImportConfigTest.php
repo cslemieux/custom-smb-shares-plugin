@@ -221,4 +221,13 @@ class ImportConfigTest extends TestCase
         $this->assertIsArray($shares);
         $this->assertCount(0, $shares);
     }
+
+    /*
+     * The importConfig rebuild-failure SURFACING contract (CF-01-01 / D-1) is
+     * verified end-to-end against the REAL api.php handler over HTTP in
+     * ImportConfigAPITest::testImportSurfacesRebuildFailureWhenSambaStopped().
+     * A prior in-process version lived here but replicated the handler logic
+     * inline and could not catch a regression, so it was moved to the HTTP
+     * harness (DD R2 finding).
+     */
 }

@@ -199,6 +199,12 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.07.12
+- **Samba integration overhaul** (thanks dlandon for the design guidance): shares are now wired into Samba via a runtime include hook in `smb.conf` — the same mechanism Unassigned Devices uses — instead of the older `smb-extra.conf` approach. **This is transparent**: your existing shares keep working and migrate automatically on upgrade. It also gives companion plugins (e.g. Recycle Bin) a clean hook point to rebuild share config.
+- **Unassigned Devices path safety**: creating a *new* share directly on a UD-managed mount (`/mnt/disks`, `/mnt/remotes`) is now blocked, because UD already exports those over SMB and a second export causes conflicts. Any existing share on those paths is **grandfathered** — kept, still editable, and flagged with a warning badge.
+- Fix: Settings page reliability — reliable settings reload (#28) and toggle initialization (#29), merged from dlandon.
+- Maintenance: CI dependency updates (checkout, upload-artifact, cache, codecov, gh-release); the release script now guards against accidentally reverting community pull requests.
+
 ### v2026.06.18
 - Fix: **Top menu bar now updates immediately** when toggling "Show in top menu bar" (issue #21 follow-up). Previously the SMB Shares tab lingered in the top navigation until a manual browser hard refresh; the Settings page now forces Unraid's menu to rebuild on change.
 

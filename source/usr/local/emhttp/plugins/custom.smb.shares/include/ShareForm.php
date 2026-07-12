@@ -155,6 +155,14 @@ _(Path)_:
 >
 > Type or paste a path, or click Browse to select a directory.
 
+<?php if (!$isNew && !$isClone && !empty($share['path']) && isUdManagedPath($share['path'])) : ?>
+<div style="margin:8px 0 4px 0;padding:10px 14px;border-left:4px solid #f0ad4e;background:var(--shade-bg-color);">
+    <i class="fa fa-exclamation-triangle orange-text"></i>
+    <strong class="orange-text"><?= _('Unassigned Devices path') ?></strong><br>
+    <?= _('This path is managed by Unassigned Devices (UD). UD mount points can appear and disappear when devices are attached or removed. UD already provides its own SMB share for this path — this entry was kept for compatibility (grandfathered). If you delete this share it cannot be automatically recreated by this plugin.') ?>
+</div>
+<?php endif; ?>
+
 _(Comment)_:
 : <input type="text" name="comment" value="<?=htmlspecialchars($share['comment'] ?? '')?>">
 

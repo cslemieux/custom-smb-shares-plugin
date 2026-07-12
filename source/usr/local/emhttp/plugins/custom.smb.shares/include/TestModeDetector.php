@@ -181,13 +181,12 @@ class TestModeDetector
             return null;
         }
 
-        $configBase = str_replace('/private/tmp/', '/tmp/', CONFIG_BASE);
         $harnessRoot = self::getHarnessRoot();
 
         return [
             'testparm' => $harnessRoot . '/usr/bin/testparm',
             'smbcontrol' => $harnessRoot . '/usr/bin/smbcontrol',
-            'configFile' => $configBase . '/plugins/custom.smb.shares/smb-custom.conf',
+            'configFile' => ConfigRegistry::getSmbCustomConfPath(),
         ];
     }
 

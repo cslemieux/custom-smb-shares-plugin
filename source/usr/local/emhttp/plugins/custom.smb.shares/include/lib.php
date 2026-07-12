@@ -14,6 +14,61 @@ if (!defined('CONFIG_BASE')) {
  * @param string|null $configBase Optional config base path (for testing)
  * @return bool True if enabled, false if disabled
  */
+/**
+ * Samba include-hook markers (REQ-INC). Unique to this plugin so they never
+ * collide with Unassigned Devices' own include directive in smb.conf.
+ */
+const HOOK_BEGIN = '# hook for custom smb shares';
+const HOOK_END = '# end hook for custom smb shares';
+
+/**
+ * Unassigned Devices managed mount roots (REQ-UD). UD already exports SMB for
+ * shares under these paths, so the plugin refuses to create a NEW share there.
+ */
+const UD_EXACT = ['/mnt/disks', '/mnt/remotes'];
+const UD_PREFIXES = ['/mnt/disks/', '/mnt/remotes/'];
+
+/**
+ * Whether a canonical logical path is managed by Unassigned Devices. REQ-UD-01.
+ * True when the path is exactly /mnt/disks or /mnt/remotes, or lives under
+ * either of them.
+ * @param string $logicalPath Canonical (harness-stripped) logical path
+ * @return bool True if the path is UD-managed
+ */
+function isUdManagedPath(string $logicalPath): bool
+{
+    $p = rtrim($logicalPath, '/');
+    if ($p === '') {
+        return false;
+    }
+    if (in_array($p, UD_EXACT, true)) {
+        return true;
+    }
+    foreach (UD_PREFIXES as $prefix) {
+        if (strpos($logicalPath, $prefix) === 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Whether an existing share already uses the given path. REQ-UD-02 grandfather:
+ * an already-configured UD-path share must remain editable, so validateShare()
+ * only rejects UD paths that are NOT already present in the current config.
+ * @param string $path Canonical logical path to look for
+ * @param array<int, array<string, mixed>> $existingShares Current shares
+ * @return bool True if any existing share has this exact path
+ */
+function shareExistsWithPath(string $path, array $existingShares): bool
+{
+    foreach ($existingShares as $share) {
+        if (isset($share['path']) && $share['path'] === $path) {
+            return true;
+        }
+    }
+    return false;
+}
 function isPluginEnabled(?string $configBase = null): bool
 {
     $base = $configBase ?? ConfigRegistry::getConfigBase();
@@ -46,39 +101,7 @@ function isTopbarEnabled(?string $configBase = null): bool
     return ($settings['TOPBAR'] ?? 'enabled') !== 'disabled';
 }
 
-/**
- * Whether the top-bar placement changed between two TOPBAR values.
- * Normalizes each to the canonical 'enabled'/'disabled' first, so noise like
- * '' or an unknown value vs 'enabled' is NOT treated as a change.
- * Issue #21 follow-up: drives the post-save GUI reload on the Settings page.
- * @param string $previous Prior TOPBAR value
- * @param string $next New TOPBAR value
- * @return bool True if the effective placement changed
- */
-function topbarPlacementChanged(string $previous, string $next): bool
-{
-    $normalize = static function (string $value): string {
-        return $value === 'disabled' ? 'disabled' : 'enabled';
-    };
-    return $normalize($previous) !== $normalize($next);
-}
 
-/**
- * Inline script that forces a full top-level GET navigation so Unraid's
- * PageBuilder rebuilds the top nav from the new TOPBAR setting. Returns ''
- * when nothing changed. Uses a GET navigation (location = pathname) rather
- * than reload() to avoid the browser's form-resubmission prompt after the
- * settings POST. Issue #21 follow-up.
- * @param bool $changed Whether the top-bar placement changed
- * @return string Script tag, or '' when no reload is needed
- */
-function topbarReloadScript(bool $changed): string
-{
-    if (!$changed) {
-        return '';
-    }
-    return "<script>window.top.location = window.top.location.pathname;</script>\n";
-}
 
 /**
  * Canonical plugin settings with defaults, merged over settings.cfg.
@@ -205,9 +228,12 @@ function getHarnessRoot(): string
 
 /**
  * @param array<string, mixed> $data Share data (modified in place - path is replaced with realpath)
+ * @param array<int, array<string, mixed>>|null $existingShares Existing shares used for the
+ *        Unassigned Devices grandfather check. Defaults to loadShares() when null so existing
+ *        call sites continue to work unchanged.
  * @return array<int, string> Array of validation error messages
  */
-function validateShare(array &$data): array
+function validateShare(array &$data, ?array $existingShares = null): array
 {
     $errors = [];
 
@@ -253,6 +279,18 @@ function validateShare(array &$data): array
                 // Store the resolved path to prevent TOCTOU attacks
                 // In test mode, strip the harness root prefix for storage
                 $data['path'] = $logicalPath;
+
+                // Unassigned Devices path policy (REQ-UD-01/02/04). Applied AFTER
+                // canonicalization so $data['path'] is the logical path. This check is
+                // INDEPENDENT of ALLOW_EXTERNAL_PATHS and introduces no new config key:
+                // UD (/mnt/disks, /mnt/remotes) already exports SMB for these mounts, so
+                // a NEW share on a UD-managed path would collide. Existing shares on such
+                // paths are grandfathered (edits keep working) via shareExistsWithPath().
+                $existing = $existingShares ?? loadShares();
+                if (isUdManagedPath($data['path']) && !shareExistsWithPath($data['path'], $existing)) {
+                    $errors[] = 'This path is managed by Unassigned Devices (/mnt/disks, /mnt/remotes), '
+                        . 'which already provides SMB for it. Use a path under /mnt/user instead.';
+                }
             }
         }
     }
@@ -911,38 +949,73 @@ function getSambaStatus(): array
 }
 
 /**
- * Ensure our plugin's config is included in smb-extra.conf
- * Adds include directive if not already present
- * @return bool True if include is present (or was added), false on error
+ * Ensure the plugin's include hook is present in the main smb.conf.
+ *
+ * REQ-INC-01/02/03: Injects an idempotent hook block into
+ * ConfigRegistry::getSmbConfPath() (the RAM smb.conf) rather than touching
+ * smb-extra.conf. The block is delimited by unique markers so it never
+ * collides with Unassigned Devices' own include directive (AC-INC-01.3):
+ *
+ *     # hook for custom smb shares
+ *     include = <getSmbCustomConfPath()>
+ *     # end hook for custom smb shares
+ *
+ * Idempotency (AC-INC-01/02): if HOOK_BEGIN is already present the file is
+ * left unchanged and true is returned. Otherwise the block is APPENDED to
+ * EOF (the default strategy per design; REQ-INC-04 insert-before-marker is a
+ * human-gated fallback and is NOT implemented here). Existing smb.conf
+ * content (Unraid / UD lines) is preserved verbatim.
+ *
+ * The write is atomic (temp file + rename) so a partial/failed write can
+ * never corrupt the served smb.conf (D-1 finding i).
+ *
+ * @return bool True if the hook is present (or was added), false on error
  */
 function ensureSambaInclude(): bool
 {
-    $smbExtraConf = ConfigRegistry::getSmbExtraConfPath();
+    $smbConf = ConfigRegistry::getSmbConfPath();
     $pluginConf = ConfigRegistry::getSmbCustomConfPath();
-    $includeLine = "include = $pluginConf";
 
-    // In test mode, skip this (mock environment)
-    if (TestModeDetector::isTestMode()) {
+    // Read existing smb.conf (empty string if it does not exist yet).
+    $content = @file_get_contents($smbConf);
+    if ($content === false) {
+        $content = '';
+    }
+
+    // Idempotent: if our hook marker is already present, do nothing.
+    if (strpos($content, HOOK_BEGIN) !== false) {
         return true;
     }
 
-    // Read existing smb-extra.conf
-    $content = @file_get_contents($smbExtraConf) ?: '';
+    // Build the hook block. Ensure exactly one newline separates it from any
+    // existing trailing content so we never glue onto a partial last line.
+    $block = HOOK_BEGIN . "\n"
+        . "include = $pluginConf\n"
+        . HOOK_END . "\n";
 
-    // Check if include already exists
-    if (strpos($content, $includeLine) !== false) {
-        return true;
+    $separator = ($content === '' || substr($content, -1) === "\n") ? '' : "\n";
+    $newContent = $content . $separator . $block;
+
+    // Ensure the parent directory exists before attempting the write.
+    $dir = dirname($smbConf);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
     }
 
-    // Append include directive with comment
-    $addition = "\n# Custom SMB Shares plugin\n$includeLine\n";
-
-    if (file_put_contents($smbExtraConf, $content . $addition) === false) {
-        logError("Failed to add include directive to $smbExtraConf");
+    // Atomic write: temp file + rename. On any failure, log and return false
+    // WITHOUT having clobbered the existing smb.conf.
+    $tmp = $smbConf . '.tmp.' . getmypid();
+    if (@file_put_contents($tmp, $newContent) === false) {
+        logError("Failed to write temp smb.conf at $tmp");
+        return false;
+    }
+    if (!@rename($tmp, $smbConf)) {
+        @unlink($tmp);
+        logError("Failed to rename temp smb.conf into place: $smbConf");
         return false;
     }
 
-    logInfo("Added include directive for custom SMB shares to smb-extra.conf");
+    logInfo("Added include hook for custom SMB shares to smb.conf");
     return true;
 }
 
@@ -1074,4 +1147,173 @@ function getSystemGroups(): array
     usort($groups, fn($a, $b) => strcasecmp($a['name'], $b['name']));
 
     return $groups;
+}
+/**
+ * Regenerate and apply the full Samba runtime configuration. REQ-SEAM-01/02.
+ *
+ * Orchestrates the whole write path in one serialized, crash-safe operation:
+ *   1. regenerate smb-custom.conf from shares
+ *   2. atomically write it to the RAM path
+ *   3. ensure the include hook is present in smb.conf
+ *   4. Recycle Bin integration seam (no-op unless a future feature is present)
+ *   5. reload Samba
+ *
+ * Crash-safety (D-1 finding i): the config is written to a temp file and then
+ * renamed into place, so a partial or failed write can never corrupt the
+ * config that Samba is serving.
+ *
+ * Concurrency (D-1 finding ii): the regenerate + write + ensure-include
+ * critical section is guarded by an advisory file lock (flock LOCK_EX) so two
+ * concurrent mutations cannot interleave and corrupt the config.
+ *
+ * @param array<int, array<string, mixed>>|null $shares Shares to render;
+ *        loaded from disk when null.
+ * @return array{success: bool, error: string} Result (shape matches reloadSamba)
+ */
+function rebuildSambaConfig(?array $shares = null): array
+{
+    if ($shares === null) {
+        $shares = loadShares();
+    }
+
+    $confPath = ConfigRegistry::getSmbCustomConfPath();
+    $dir = dirname($confPath);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
+    // Advisory lock over the whole regenerate+write+include critical section so
+    // concurrent mutations cannot interleave. The lock file lives in the same
+    // resolved dir (harness-safe in test mode).
+    $lockPath = $dir . '/.rebuild.lock';
+    $lock = @fopen($lockPath, 'c');
+    $locked = false;
+    if ($lock !== false) {
+        $locked = flock($lock, LOCK_EX);
+    }
+
+    try {
+        // Regenerate the config body from the current shares.
+        $config = generateSambaConfig($shares);
+
+        // Atomic write: temp file + rename. On failure, leave the existing
+        // served config untouched (D-1 finding i).
+        $tmp = $confPath . '.tmp.' . getmypid();
+        if (@file_put_contents($tmp, $config) === false) {
+            logError("Failed to write temp smb-custom.conf at $tmp");
+            return ['success' => false, 'error' => "Failed to write custom Samba config to $tmp"];
+        }
+        if (!@rename($tmp, $confPath)) {
+            @unlink($tmp);
+            logError("Failed to rename temp smb-custom.conf into place: $confPath");
+            return ['success' => false, 'error' => "Failed to install custom Samba config at $confPath"];
+        }
+
+        // Ensure the include hook is present in smb.conf (AC-SEAM-01.3: propagate
+        // an include failure as an overall failure).
+        if (!ensureSambaInclude()) {
+            return ['success' => false, 'error' => 'Failed to ensure Samba include hook in smb.conf'];
+        }
+
+        // === RECYCLE BIN NEXT INTEGRATION SEAM ===
+        // REQ-SEAM-03: documented extension point for a future Recycle Bin
+        // feature to append its own per-share directives after the base config
+        // is written and the include hook is in place, but BEFORE reload. This
+        // is a no-op today: the hook is only invoked when a future feature
+        // defines applyRecycleBinDirectives().
+        if (function_exists('applyRecycleBinDirectives')) {
+            applyRecycleBinDirectives($shares, $confPath);
+        }
+        // === END SEAM ===
+    } finally {
+        // Always release the advisory lock, even on early return.
+        if ($lock !== false) {
+            if ($locked) {
+                flock($lock, LOCK_UN);
+            }
+            fclose($lock);
+        }
+    }
+
+    return reloadSamba();
+}
+
+/**
+ * Remove the plugin's legacy include directive from smb-extra.conf. REQ-MIG-01/02.
+ *
+ * Strips ONLY the plugin's own '# Custom SMB Shares plugin' comment line and the
+ * old 'include = ...' line that references the legacy flash path
+ * (/plugins/custom.smb.shares/smb-custom.conf). All other bytes in
+ * smb-extra.conf (e.g. Unassigned Devices' own directives) are preserved
+ * verbatim. The write is atomic (temp file + rename). No-op if the file does
+ * not exist or contains no plugin lines.
+ *
+ * @return void
+ */
+function removeOldSmbExtraInclude(): void
+{
+    $smbExtraConf = ConfigRegistry::getSmbExtraConfPath();
+
+    $content = @file_get_contents($smbExtraConf);
+    if ($content === false) {
+        return; // Nothing to migrate.
+    }
+
+    $lines = explode("\n", $content);
+    $kept = [];
+    $changed = false;
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        // Drop the plugin's own comment marker.
+        if ($trimmed === '# Custom SMB Shares plugin') {
+            $changed = true;
+            continue;
+        }
+        // Drop the old include line referencing the legacy flash path only.
+        if (
+            strpos($trimmed, 'include') === 0 &&
+            strpos($line, '/plugins/custom.smb.shares/smb-custom.conf') !== false
+        ) {
+            $changed = true;
+            continue;
+        }
+        $kept[] = $line;
+    }
+
+    if (!$changed) {
+        return; // Nothing referenced the plugin; leave file untouched.
+    }
+
+    $newContent = implode("\n", $kept);
+
+    // Atomic write: temp file + rename so a partial write cannot corrupt
+    // smb-extra.conf (which may hold other tools' directives).
+    $tmp = $smbExtraConf . '.tmp.' . getmypid();
+    if (@file_put_contents($tmp, $newContent) === false) {
+        logError("Failed to write temp smb-extra.conf at $tmp during migration");
+        return;
+    }
+    if (!@rename($tmp, $smbExtraConf)) {
+        @unlink($tmp);
+        logError("Failed to rename temp smb-extra.conf into place during migration: $smbExtraConf");
+        return;
+    }
+
+    logInfo('Removed legacy custom SMB shares include from smb-extra.conf');
+}
+
+/**
+ * Migrate the plugin's Samba wiring on upgrade. REQ-MIG-01/02/03.
+ *
+ * Removes the legacy smb-extra.conf include (old flash-path model) and then
+ * rebuilds the runtime config via the new RAM-path + smb.conf-hook model.
+ * Never mutates shares.json, so ALL existing shares (including any on
+ * UD-managed paths, which are grandfathered) are preserved.
+ *
+ * @return void
+ */
+function migrateSambaRuntime(): void
+{
+    removeOldSmbExtraInclude();
+    rebuildSambaConfig();
 }

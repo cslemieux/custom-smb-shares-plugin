@@ -42,7 +42,7 @@
         "test:coverage": "phpunit --testsuite=Unit,Integration --coverage-html coverage/ --coverage-text",
         "lint": "phpcs --warning-severity=0",
         "lint:fix": "phpcbf",
-        "analyze": "phpstan analyse source/ --level=8 --no-progress",
+        "analyze": "phpstan analyse source/ --level=8 --no-progress --memory-limit=1G",
         "check:js": "node --check source/usr/local/emhttp/plugins/custom.smb.shares/js/*.js 2>&1 || true",
         "check": [
             "@validate:sources",

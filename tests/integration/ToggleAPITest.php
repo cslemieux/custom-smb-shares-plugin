@@ -91,14 +91,16 @@ class ToggleAPITest extends TestCase
     {
         // Disable share
         $this->postAPI('toggleShare', ['name' => 'testshare', 'enabled' => 'false']);
-        
-        // Check config file
-        $configPath = self::$harness['harness_dir'] . '/boot/config/plugins/custom.smb.shares/smb-custom.conf';
-        
-        if (file_exists($configPath)) {
-            $config = file_get_contents($configPath);
-            $this->assertStringNotContainsString('[testshare]', $config);
-        }
+
+        // Config now lives at the RAM path (<harnessRoot>/etc/samba/smb-custom.conf),
+        // NOT the old flash path. The harness CONFIG_BASE is <harness_dir>/boot/config,
+        // so the harness root (getSmbCustomConfPath resolves against it) is <harness_dir>.
+        $configPath = self::$harness['harness_dir'] . '/etc/samba/smb-custom.conf';
+
+        $this->assertFileExists($configPath, 'toggleShare must regenerate the RAM smb-custom.conf');
+        $config = file_get_contents($configPath);
+        // The disabled share must be excluded from the generated config.
+        $this->assertStringNotContainsString('[testshare]', $config);
     }
 
     public function testToggleReturnssambaReloadedStatus(): void

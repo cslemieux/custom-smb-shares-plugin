@@ -109,3 +109,6 @@ cleanup-harness.sh
 .kiro/think_gate_triage_cache.*
 .kiro/health-scores.jsonl
 .vite/
+
+# workstream runtime markers (transient, never track)
+.kiro/00-memory/workstreams/.inflight.*

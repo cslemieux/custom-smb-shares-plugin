@@ -150,12 +150,30 @@ if ($action === 'importConfig') {
     backupShares();
 
     saveShares($shares);
-    echo json_encode(['success' => true, 'message' => 'Configuration imported successfully']);
+    $rebuildResult = rebuildSambaConfig($shares);
+
+    if (!$rebuildResult['success']) {
+        // The import was persisted to disk but the Samba runtime rebuild failed.
+        // Report success: true so the UI knows the data was saved, but include a
+        // warning so the caller can surface the runtime failure to the user.
+        echo json_encode([
+            'success' => true,
+            'message' => 'Configuration imported successfully',
+            'warning' => 'Samba config rebuild failed: ' . $rebuildResult['error'],
+            'sambaReloaded' => $rebuildResult,
+        ]);
+    } else {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Configuration imported successfully',
+            'sambaReloaded' => $rebuildResult,
+        ]);
+    }
     exit;
 }
 
 if ($action === 'reloadSamba') {
-    $result = reloadSamba();
+    $result = rebuildSambaConfig();
     if ($result['success']) {
         echo json_encode(['success' => true, 'message' => 'Samba reloaded successfully']);
     } else {
@@ -193,13 +211,8 @@ if ($action === 'toggleShare') {
 
     saveShares($shares);
 
-    // Regenerate Samba config file
-    $config = generateSambaConfig($shares);
-    $configPath = ConfigRegistry::getConfigBase() . '/plugins/custom.smb.shares/smb-custom.conf';
-    file_put_contents($configPath, $config);
-
-    // Reload Samba
-    $sambaResult = reloadSamba();
+    // Regenerate Samba config and reload via single seam
+    $sambaResult = rebuildSambaConfig($shares);
 
     echo json_encode([
         'success' => true,
@@ -260,16 +273,9 @@ if ($action === 'restoreBackup') {
         exit;
     }
 
-    // Regenerate the Samba config file from the restored shares — without
-    // this, the restore appears to "do nothing" because shares.json is
-    // updated but Samba serves the previous configuration.
+    // Regenerate the Samba config file from the restored shares and reload via single seam.
     $shares = loadShares();
-    $sambaConfig = generateSambaConfig($shares);
-    $configPath = ConfigRegistry::getConfigBase() . '/plugins/custom.smb.shares/smb-custom.conf';
-    file_put_contents($configPath, $sambaConfig);
-
-    // Reload Samba so the restored shares are immediately effective.
-    $sambaResult = reloadSamba();
+    $sambaResult = rebuildSambaConfig($shares);
 
     echo json_encode([
         'success' => true,

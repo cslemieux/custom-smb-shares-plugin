@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2026.06.18">
+<!ENTITY version   "2026.07.12">
 <!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "7555f9b88997fc262b879dc7d904a0ac">
+<!ENTITY md5       "ef497d5b48eacbc6748293c76d97b141">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -23,6 +23,12 @@
 
 <CHANGES>
 ##&name;
+
+###2026.07.12
+- New: Samba runtime integration (thanks dlandon) - shares are now included into smb.conf via a plugin-managed runtime hook, the same approach Unassigned Devices uses, replacing the older smb-extra.conf mechanism. Transparent on upgrade: existing shares keep working and migrate automatically. Gives companion plugins (e.g. Recycle Bin) a clean seam to rebuild share config.
+- New: Unassigned Devices path safety - creating a NEW share directly on /mnt/disks or /mnt/remotes is now blocked (UD already exports those over SMB; a second export conflicts). Existing shares on those paths are grandfathered (kept and editable) with a warning badge.
+- Fix: Settings page reload (#28) and toggle initialization (#29), merged from dlandon.
+- Maintenance: CI dependency updates; release tooling now guards against reverting community PRs.
 
 ###2026.06.18
 - Fix: Toggling "Show in top menu bar" now updates the top navigation immediately on Apply - the SMB Shares tab no longer lingers until a manual browser hard refresh (issue #21 follow-up).
@@ -166,6 +172,9 @@ fi
 # Set permissions
 chmod 644 &plgPATH;/shares.json
 chmod 644 &plgPATH;/settings.cfg
+
+# Run upgrade migration (best-effort: removes obsolete smb-extra.conf include from smb.conf)
+php -r 'require_once("/usr/local/emhttp/plugins/custom.smb.shares/include/lib.php"); migrateSambaRuntime();' 2>/dev/null || true
 
 echo ""
 echo "----------------------------------------------------"

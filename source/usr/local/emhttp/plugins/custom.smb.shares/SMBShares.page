@@ -113,6 +113,9 @@ $sambaRunning = $sambaStatus['running'];
     <td>
         <span class="exec" style="margin-right:8px;"><i class="fa fa-folder orange-text"></i></span>
         <span class="exec"><?= htmlspecialchars($share['name']) ?></span>
+        <?php if (isUdManagedPath($share['path'] ?? '')): ?>
+        <i class="fa fa-exclamation-triangle orange-text ud-warning-badge" title="<?= _('This path is managed by Unassigned Devices. It may appear/disappear and UD already provides SMB for it. Kept for compatibility.') ?>" style="margin-left:4px;cursor:help;"></i>
+        <?php endif; ?>
     </td>
     <td>
         <a class="view" href="/SMBShares/Browse?dir=<?= htmlspecialchars($share['path']) ?>"><i class="icon-u-tab" title="<?= _('Browse') ?> <?= htmlspecialchars($share['path']) ?>"></i></a>

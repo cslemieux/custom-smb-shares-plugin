@@ -48,15 +48,7 @@ try {
     $shares = array_values($shares);
     saveShares($shares);
 
-    $config = generateSambaConfig($shares);
-    $configPath = CONFIG_BASE . '/plugins/custom.smb.shares/smb-custom.conf';
-    $configDir = dirname($configPath);
-    if (!is_dir($configDir)) {
-        mkdir($configDir, 0755, true);
-    }
-    file_put_contents($configPath, $config);
-
-    $result = reloadSamba();
+    $result = rebuildSambaConfig($shares);
     if (!$result['success']) {
         http_response_code(500);
         echo json_encode(['success' => false, 'error' => 'Failed to reload Samba: ' . $result['error']]);
