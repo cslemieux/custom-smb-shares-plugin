@@ -64,6 +64,9 @@ if (!isset($GLOBALS['language'])) {
 if (!isset($GLOBALS['var'])) {
     $GLOBALS['var'] = [
         'csrf_token' => 'test_csrf_token_' . bin2hex(random_bytes(16)),
+        // Simulate a running array so pages gated on $var['mdState']=="STARTED"
+        // (SMBShares.page — dlandon PR #31) render their content in the harness.
+        'mdState' => 'STARTED',
     ];
 }
 
