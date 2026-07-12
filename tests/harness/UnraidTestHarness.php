@@ -328,7 +328,11 @@ PHP;
     private static function createVarIni(): void
     {
         $token = bin2hex(random_bytes(16));
+        // mdState=STARTED simulates a running array so the shares UI renders in E2E.
+        // SMBShares.page gates its content on $var['mdState']=="STARTED" (dlandon PR #31);
+        // without this the harness page shows "Array is stopped!" and all E2E tests fail.
         $varIni = "csrf_token=\"$token\"\n";
+        $varIni .= "mdState=\"STARTED\"\n";
         
         file_put_contents(
             self::$harness_dir . '/var/local/emhttp/var.ini',
