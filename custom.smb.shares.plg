@@ -3,11 +3,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "custom.smb.shares">
 <!ENTITY author    "cslemieux">
-<!ENTITY version   "2026.07.12">
+<!ENTITY version   "2026.07.12a">
 <!ENTITY launch    "SMBShares">
 <!ENTITY github    "cslemieux/unraid-custom-smb-shares">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/main/&name;.plg">
-<!ENTITY md5       "ef497d5b48eacbc6748293c76d97b141">
+<!ENTITY md5       "981dc2b8e6c3d2a7e433cf07ba296d36">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 ]>
@@ -23,6 +23,12 @@
 
 <CHANGES>
 ##&name;
+
+###2026.07.12a
+- New: Recycle Bin Next integration (thanks dlandon) - reloadSamba() routes through the Recycle Bin plugin when it is installed and running, so recycle-bin monitoring stays in sync as shares change; falls back to a normal Samba reload otherwise.
+- Change: Use standard Unraid array lifecycle events (thanks dlandon) - shares initialize on the 'started' event (array fully up) and are cleaned up on 'stopping_svcs' (array shutdown), replacing the older disks_mounted hook for more predictable behavior.
+- Change: The SMB Shares page now shows an informational message instead of controls while the array is stopped (thanks dlandon).
+- Maintenance: packages no longer include macOS ._* metadata files (thanks dlandon); CI now tests PHP 8.0 through 8.4 (the Unraid 7.3 runtime).
 
 ###2026.07.12
 - New: Samba runtime integration (thanks dlandon) - shares are now included into smb.conf via a plugin-managed runtime hook, the same approach Unassigned Devices uses, replacing the older smb-extra.conf mechanism. Transparent on upgrade: existing shares keep working and migrate automatically. Gives companion plugins (e.g. Recycle Bin) a clean seam to rebuild share config.
@@ -148,6 +154,9 @@ rm -f $(ls &plgPATH;/&name;*.md5 2>/dev/null | grep -v '&version;')
 removepkg &name; 2>/dev/null || true
 # Install the new package
 installpkg &plgPATH;/&name;-&version;-x86_64-1.txz
+# Strip any stray macOS AppleDouble metadata files from the runtime dir (thanks dlandon).
+# Clears residue left by older packages that shipped ._* files.
+find &plugdir; -type f -name "._*" -delete 2>/dev/null || true
 </INLINE>
 </FILE>
 

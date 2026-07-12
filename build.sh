@@ -250,6 +250,11 @@ main() {
     # Remove any dev files that shouldn't be in the package
     find ${BUILD_DIR} -name ".DS_Store" -delete 2>/dev/null || true
     find ${BUILD_DIR} -name "*.bak" -delete 2>/dev/null || true
+    # Strip macOS AppleDouble metadata (._*) so it never enters the package (thanks dlandon).
+    # Deletes any on-disk ._* files, and COPYFILE_DISABLE stops bsdtar from re-embedding
+    # AppleDouble entries derived from file xattrs during the tar below.
+    find ${BUILD_DIR} -name "._*" -delete 2>/dev/null || true
+    export COPYFILE_DISABLE=1
     
     # Set proper permissions
     find ${BUILD_DIR} -type d -exec chmod 755 {} \;

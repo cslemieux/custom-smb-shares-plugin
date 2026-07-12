@@ -199,6 +199,12 @@ composer test:e2e
 
 ## Changelog
 
+### v2026.07.12a
+- **Recycle Bin Next integration** (thanks @dlandon): Custom SMB Shares now works with Recycle Bin Next — when it's installed, share-config reloads route through the recycle bin so its monitoring stays in sync automatically as you add/edit/remove shares. Falls back to a normal Samba reload when the recycle bin isn't present.
+- **Standard array lifecycle events** (@dlandon): shares now initialize on the `started` event (array fully up) and clean up on `stopping_svcs` (array shutdown), replacing the older `disks_mounted` hook — more predictable startup/shutdown ordering.
+- **Cleaner UI when the array is stopped** (@dlandon): the SMB Shares page shows an informational message instead of unusable controls while the array is down.
+- Packaging: release packages no longer include macOS `._*` metadata files (thanks @dlandon for the catch); CI now tests PHP 8.0–8.4 (matching the Unraid 7.3 runtime).
+
 ### v2026.07.12
 - **Samba integration overhaul** (thanks dlandon for the design guidance): shares are now wired into Samba via a runtime include hook in `smb.conf` — the same mechanism Unassigned Devices uses — instead of the older `smb-extra.conf` approach. **This is transparent**: your existing shares keep working and migrate automatically on upgrade. It also gives companion plugins (e.g. Recycle Bin) a clean hook point to rebuild share config.
 - **Unassigned Devices path safety**: creating a *new* share directly on a UD-managed mount (`/mnt/disks`, `/mnt/remotes`) is now blocked, because UD already exports those over SMB and a second export causes conflicts. Any existing share on those paths is **grandfathered** — kept, still editable, and flagged with a warning badge.
